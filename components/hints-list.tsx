@@ -56,6 +56,8 @@ export function HintsList({
   hints: HintSlot[]
   onSetWord: (slotId: string, word: string | null) => void
 }) {
+  const [globalInput, setGlobalInput] = useState("")
+
   const groups = useMemo(() => {
     const map = new Map<string, HintSlot[]>()
     for (const slot of hints) {
@@ -66,9 +68,47 @@ export function HintsList({
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   }, [hints])
 
+  function handleGlobalSubmit() {
+    const trimmed = globalInput.trim().toUpperCase()
+    if (trimmed.length < 3) return
+
+    // Extract first 3 letters as the prefix.
+    const prefix = trimmed.substring(0, 3)
+
+    // Find the group with that prefix.
+    const group = groups.find(([p]) => p === prefix)
+    if (!group) return
+
+    // Find the first empty slot in that group.
+    const [, slots] = group
+    const emptySlot = slots.find((s) => !s.word)
+    if (!emptySlot) return
+
+    // Set the word and clear the input.
+    onSetWord(emptySlot.id, trimmed)
+    setGlobalInput("")
+  }
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
       <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Hints</h2>
+      <div className="mb-4">
+        <Input
+          value={globalInput}
+          onChange={(e) => setGlobalInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault()
+              handleGlobalSubmit()
+            }
+          }}
+          placeholder="Enter any word…"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          className="h-9 font-mono text-sm uppercase"
+        />
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {groups.map(([prefix, slots]) => {
           const done = slots.filter((s) => s.word).length
