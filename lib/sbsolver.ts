@@ -46,10 +46,15 @@ function validateUrl(raw: string): URL {
   if (u.hostname !== ALLOWED_HOST) {
     throw new Error(`Only ${ALLOWED_HOST} URLs are supported.`)
   }
-  if (!/^\/nt\//.test(u.pathname)) {
-    throw new Error("That's not a sbsolver hints page (expected a /nt/… URL).")
+  // Accept both the "/nt/<id>" (2-letter tally) and "/n/<id>" (Basic) puzzle
+  // pages. The Basic page has the grid but no 2-letter tally to crawl, so
+  // normalize either form to "/nt/<id>" — the page that carries the hints.
+  const m = u.pathname.match(/^\/(?:nt|n)\/([A-Za-z0-9]+)/)
+  if (!m) {
+    throw new Error("That's not a sbsolver puzzle page (expected a /nt/… or /n/… URL).")
   }
   u.protocol = "https:"
+  u.pathname = `/nt/${m[1]}`
   return u
 }
 
