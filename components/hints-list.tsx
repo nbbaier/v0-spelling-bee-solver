@@ -7,32 +7,67 @@ import { cn } from "@/lib/utils"
 import type { HintSlot } from "@/lib/types"
 import { EyeOff, X } from "lucide-react"
 
+// Returns true if every character in word is in the allowed set.
+function hasOnlyAllowedLetters(word: string, allowed: string[]): boolean {
+  const set = new Set(allowed.map((l) => l.toUpperCase()))
+  return word.toUpperCase().split("").every((ch) => set.has(ch))
+}
+
 function SlotInput({
   slot,
+  allowedLetters,
   onCommit,
 }: {
   slot: HintSlot
+  allowedLetters: string[]
   onCommit: (word: string | null) => void
 }) {
   const [value, setValue] = useState(slot.word ?? "")
   const [showDelete, setShowDelete] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Keep local state in sync if the puzzle is reset/loaded externally.
   useEffect(() => {
     setValue(slot.word ?? "")
+    setError(null)
   }, [slot.word])
 
   const filled = Boolean(slot.word)
 
+  function validate(raw: string): string | null {
+    const trimmed = raw.trim().toUpperCase()
+    if (!trimmed) return null
+    if (!trimmed.startsWith(slot.prefix.toUpperCase())) {
+      return `Must start with ${slot.prefix.toUpperCase()}`
+    }
+    if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
+      return "Contains letters not in this puzzle"
+    }
+    return null
+  }
+
   function commit() {
-    const trimmed = value.trim()
+    const trimmed = value.trim().toUpperCase()
+    const err = validate(trimmed)
+    if (err) {
+      setError(err)
+      return
+    }
+    setError(null)
     onCommit(trimmed.length > 0 ? trimmed : null)
   }
 
   function handleDelete() {
     setValue("")
+    setError(null)
     onCommit(null)
     setShowDelete(false)
+  }
+
+  function handleChange(raw: string) {
+    setValue(raw)
+    // Clear error as soon as the user starts editing again.
+    if (error) setError(null)
   }
 
   return (
@@ -43,8 +78,9 @@ function SlotInput({
     >
       <Input
         aria-label={`${slot.prefix} word`}
+        aria-invalid={Boolean(error)}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
@@ -57,10 +93,14 @@ function SlotInput({
         spellCheck={false}
         className={cn(
           "h-9 font-mono text-sm uppercase",
-          filled && "border-primary/60 bg-primary/10 font-semibold pr-10",
+          filled && !error && "border-primary/60 bg-primary/10 font-semibold pr-10",
+          error && "border-destructive bg-destructive/5 pr-10 focus-visible:ring-destructive",
         )}
       />
-      {filled && (
+      {error && (
+        <p className="mt-1 text-xs text-destructive">{error}</p>
+      )}
+      {filled && !error && (
         <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground">{value.length}</span>
           {showDelete && (
@@ -81,12 +121,15 @@ function SlotInput({
 
 export function HintsList({
   hints,
+  allowedLetters,
   onSetWord,
 }: {
   hints: HintSlot[]
+  allowedLetters: string[]
   onSetWord: (slotId: string, word: string | null) => void
 }) {
   const [globalInput, setGlobalInput] = useState("")
+  const [globalError, setGlobalError] = useState<string | null>(null)
   const [letterFilter, setLetterFilter] = useState<string | null>(null)
   const [hideCompleted, setHideCompleted] = useState(false)
 
@@ -118,14 +161,34 @@ export function HintsList({
 
   function handleGlobalSubmit() {
     const trimmed = globalInput.trim().toUpperCase()
-    if (trimmed.length < 3) return
+    if (!trimmed) return
+
+    if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
+      setGlobalError("Contains letters not in this puzzle")
+      return
+    }
+
+    if (trimmed.length < 3) {
+      setGlobalError("Word must be at least 3 letters")
+      return
+    }
+
     const prefix = trimmed.substring(0, 3)
     const group = groups.find(([p]) => p === prefix)
-    if (!group) return
+    if (!group) {
+      setGlobalError(`No prefix "${prefix}" in this puzzle`)
+      return
+    }
+
     const emptySlot = group[1].find((s) => !s.word)
-    if (!emptySlot) return
+    if (!emptySlot) {
+      setGlobalError(`All "${prefix}" slots are already filled`)
+      return
+    }
+
     onSetWord(emptySlot.id, trimmed)
     setGlobalInput("")
+    setGlobalError(null)
   }
 
   return (
@@ -149,19 +212,29 @@ export function HintsList({
       <div className="mb-3">
         <Input
           value={globalInput}
-          onChange={(e) => setGlobalInput(e.target.value)}
+          onChange={(e) => {
+            setGlobalInput(e.target.value)
+            if (globalError) setGlobalError(null)
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault()
               handleGlobalSubmit()
             }
           }}
+          aria-invalid={Boolean(globalError)}
           placeholder="Enter any word…"
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}
-          className="h-9 font-mono text-sm uppercase"
+          className={cn(
+            "h-9 font-mono text-sm uppercase",
+            globalError && "border-destructive bg-destructive/5 focus-visible:ring-destructive",
+          )}
         />
+        {globalError && (
+          <p className="mt-1 text-xs text-destructive">{globalError}</p>
+        )}
       </div>
 
       {/* Letter filter pills */}
@@ -222,7 +295,7 @@ export function HintsList({
                 {slots
                   .filter((slot) => !(hideCompleted && slot.word))
                   .map((slot) => (
-                    <SlotInput key={slot.id} slot={slot} onCommit={(w) => onSetWord(slot.id, w)} />
+                    <SlotInput key={slot.id} slot={slot} allowedLetters={allowedLetters} onCommit={(w) => onSetWord(slot.id, w)} />
                   ))}
               </div>
             </div>

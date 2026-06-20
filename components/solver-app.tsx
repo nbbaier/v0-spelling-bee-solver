@@ -94,7 +94,7 @@ export function SolverApp() {
             <MatrixGrid puzzle={puzzle!} derived={derived} />
           </div>
           <div className="space-y-4 lg:col-span-2">
-            <HintsList hints={puzzle!.hints} onSetWord={setWord} />
+            <HintsList hints={puzzle!.hints} allowedLetters={puzzle!.letters} onSetWord={setWord} />
             <Button variant="ghost" size="sm" onClick={deletePuzzle} className="text-muted-foreground">
               Delete this puzzle
             </Button>
