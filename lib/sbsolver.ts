@@ -103,13 +103,13 @@ function parseThreeLetterCells(root: Root): string[] {
     .filter((t) => /[A-Za-z]{2,}\s*[x×*]\s*\d+/.test(t))
 }
 
-function parseDate(root: Root, html: string): string | null {
-  // Most reliable: the ISO date in the trailing build comment,
-  // e.g. <!-- 0 sb_nt_Rdginow 2026-06-20 03:03:28 -->
-  const comment = html.match(/sb_\w+\s+(\d{4}-\d{2}-\d{2})/)
-  if (comment) return comment[1]
-
-  // Fallback: parse "June 20, 2026" from the <title>.
+function parseDate(root: Root): string | null {
+  // The puzzle's own date is the human date in the <title> / crumb,
+  // e.g. "June 2, 2026 | 2-Letter Spelling Bee Hints".
+  //
+  // Do NOT use the trailing build comment (<!-- ... 2026-06-20 ... -->): that's
+  // the page-generation timestamp (i.e. today), not the puzzle's date — it only
+  // matched by coincidence when fetching the current day's puzzle.
   const title = root.querySelector("title")?.text ?? ""
   const dm = title.match(/([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/)
   if (dm) {
@@ -156,11 +156,10 @@ async function crawlThreeLetter(
 
 export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
   const url = validateUrl(rawUrl)
-  const html = await fetchHtml(url.toString())
-  const root = parse(html, { comment: true })
+  const root = parse(await fetchHtml(url.toString()))
 
   const matrixText = parseMatrixTable(root)
-  const date = parseDate(root, html)
+  const date = parseDate(root)
   const links = parsePrefixLinks(root)
 
   if (links.length === 0) {
