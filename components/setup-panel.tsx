@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { parseHints, parseMatrix } from "@/lib/parse"
 import { SAMPLE_HINTS, SAMPLE_MATRIX } from "@/lib/sample"
 import { SAMPLE_ID } from "@/lib/keys"
+import { fetchPuzzleFromUrlAction } from "@/app/actions"
 import type { HintSlot, MatrixData } from "@/lib/types"
 
 const MATRIX_PLACEHOLDER = `\t4\t5\t6\t7\nD\t2\t3\t1\t1\nO\t1\t2\t\t\nN\t\t1\t1\t`
@@ -28,6 +29,43 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
   const [hintsText, setHintsText] = useState("")
   const [error, setError] = useState<string | null>(null)
 
+  // URL-fetch state.
+  const [url, setUrl] = useState("")
+  const [fetching, setFetching] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  // Date scraped from the page. We hold it locally (rather than calling
+  // onDateChange) so the fetched textareas aren't lost to a remount when the
+  // SWR key changes; it becomes the save target at Load time.
+  const [fetchedDate, setFetchedDate] = useState<string | null>(null)
+  const [failedPrefixes, setFailedPrefixes] = useState<string[]>([])
+
+  async function handleFetch() {
+    setFetchError(null)
+    setError(null)
+    setFetching(true)
+    try {
+      const result = await fetchPuzzleFromUrlAction(url)
+      if (!result.ok) {
+        setFetchError(result.error)
+        return
+      }
+      setMatrixText(result.matrixText)
+      setHintsText(result.hintsText)
+      setFetchedDate(result.date)
+      setFailedPrefixes(result.failedPrefixes)
+    } catch {
+      setFetchError("Couldn't reach the puzzle. Check the URL and try again.")
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  // The user manually picking a date overrides any scraped date.
+  function handleManualDate(next: string) {
+    setFetchedDate(null)
+    onDateChange(next)
+  }
+
   function handleLoad() {
     setError(null)
     if (mode === "sample") {
@@ -43,7 +81,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
     try {
       const { letters, lengths, grid } = parseMatrix(matrixText)
       const hints = parseHints(hintsText)
-      onLoad({ letters, lengths, grid }, hints, date)
+      onLoad({ letters, lengths, grid }, hints, fetchedDate ?? date)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not parse the puzzle.")
     }
@@ -92,12 +130,65 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
           {mode === "date" ? (
             <>
               <div className="space-y-2">
+                <Label htmlFor="puzzle-url">Fetch from sbsolver URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="puzzle-url"
+                    type="url"
+                    inputMode="url"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value)
+                      if (fetchError) setFetchError(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && url.trim() && !fetching) {
+                        e.preventDefault()
+                        handleFetch()
+                      }
+                    }}
+                    placeholder="https://www.sbsolver.com/nt/…"
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleFetch}
+                    disabled={fetching || url.trim().length === 0}
+                  >
+                    {fetching ? "Fetching…" : "Fetch"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Paste a puzzle URL to fill the grid and hints below automatically. You can still edit them before loading.
+                </p>
+                {fetchError ? (
+                  <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {fetchError}
+                  </p>
+                ) : null}
+                {fetchedDate ? (
+                  <p className="rounded-md bg-primary/10 px-3 py-2 text-xs text-foreground">
+                    Fetched the puzzle for <span className="font-semibold">{fetchedDate}</span>
+                    {fetchedDate !== date ? " — it will be saved under that date." : "."}
+                  </p>
+                ) : null}
+                {failedPrefixes.length > 0 ? (
+                  <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-foreground">
+                    Couldn&apos;t fetch the 3-letter hints for{" "}
+                    <span className="font-mono font-semibold">{failedPrefixes.join(", ")}</span>. Add those by hand in the
+                    hint list below.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="puzzle-date">Puzzle date</Label>
                 <Input
                   id="puzzle-date"
                   type="date"
-                  value={date}
-                  onChange={(e) => onDateChange(e.target.value)}
+                  value={fetchedDate ?? date}
+                  onChange={(e) => handleManualDate(e.target.value)}
                   className="w-auto"
                 />
                 <p className="text-xs text-muted-foreground">
