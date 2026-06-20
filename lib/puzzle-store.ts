@@ -1,6 +1,6 @@
 import "server-only"
 import { redis } from "./redis"
-import { keys } from "./keys"
+import { isSampleId, keys } from "./keys"
 import type { HintSlot, MatrixData, Puzzle } from "./types"
 
 // Reads a full puzzle (matrix + hints + entered words) for a date.
@@ -22,15 +22,19 @@ export async function getPuzzle(date: string): Promise<Puzzle | null> {
   return { date, letters: matrix.letters, lengths: matrix.lengths, grid: matrix.grid, hints }
 }
 
-// Saves the static puzzle definition (matrix + prefix slots) for a date and
-// registers the date in the index set. Does not touch entered words.
+// Saves the static puzzle definition (matrix + prefix slots) for a date/id and
+// registers it in the date index set (skipped for the sample sentinel).
+// Does not touch entered words.
 export async function savePuzzle(date: string, matrix: MatrixData, hints: HintSlot[]): Promise<void> {
   const blankSlots = hints.map((s) => ({ id: s.id, prefix: s.prefix, word: null }))
-  await Promise.all([
+  const ops: Promise<unknown>[] = [
     redis.set(keys.matrix(date), matrix),
     redis.set(keys.prefixes(date), blankSlots),
-    redis.sadd(keys.dates(), date),
-  ])
+  ]
+  if (!isSampleId(date)) {
+    ops.push(redis.sadd(keys.dates(), date))
+  }
+  await Promise.all(ops)
 }
 
 // Records or clears a single found word.
@@ -42,14 +46,17 @@ export async function setWord(date: string, slotId: string, word: string | null)
   }
 }
 
-// Removes a puzzle and its progress for a date.
+// Removes a puzzle and its progress for a date/id.
 export async function deletePuzzle(date: string): Promise<void> {
-  await Promise.all([
+  const ops: Promise<unknown>[] = [
     redis.del(keys.matrix(date)),
     redis.del(keys.prefixes(date)),
     redis.del(keys.words(date)),
-    redis.srem(keys.dates(), date),
-  ])
+  ]
+  if (!isSampleId(date)) {
+    ops.push(redis.srem(keys.dates(), date))
+  }
+  await Promise.all(ops)
 }
 
 // Lists all saved puzzle dates, most recent first.

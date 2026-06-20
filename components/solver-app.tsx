@@ -12,7 +12,7 @@ import { derive } from "@/lib/derive"
 import type { HintSlot, MatrixData } from "@/lib/types"
 
 export function SolverApp() {
-  const { date, setDate, puzzle, isLoading, saving, savePuzzle, setWord, deletePuzzle } = usePuzzle()
+  const { date, setDate, isSample, loadSample, puzzle, isLoading, saving, savePuzzle, setWord, deletePuzzle } = usePuzzle()
   const [forceLoader, setForceLoader] = useState(false)
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle])
@@ -25,9 +25,11 @@ export function SolverApp() {
     [setDate],
   )
 
+  // onLoad receives the target id (a date string or "sample") from SetupPanel.
+  // Pass it through to savePuzzle so the hook can switch the SWR key atomically.
   const handleLoad = useCallback(
-    async (matrix: MatrixData, hints: HintSlot[]) => {
-      await savePuzzle(matrix, hints)
+    async (matrix: MatrixData, hints: HintSlot[], id: string) => {
+      await savePuzzle(matrix, hints, id)
       setForceLoader(false)
     },
     [savePuzzle],
@@ -49,13 +51,19 @@ export function SolverApp() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Input
-            type="date"
-            aria-label="Puzzle date"
-            value={date}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className="w-auto"
-          />
+          {isSample ? (
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary-foreground/80">
+              Sample data
+            </span>
+          ) : (
+            <Input
+              type="date"
+              aria-label="Puzzle date"
+              value={date}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-auto"
+            />
+          )}
           {saving ? <span className="text-xs text-muted-foreground">Saving…</span> : null}
           {puzzle && !showLoader ? (
             <Button variant="outline" onClick={() => setForceLoader(true)}>
