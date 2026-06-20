@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
+import { Toggle } from "@/components/ui/toggle"
 import { cn } from "@/lib/utils"
 import type { HintSlot } from "@/lib/types"
-import { X } from "lucide-react"
+import { EyeOff, X } from "lucide-react"
 
 function SlotInput({
   slot,
@@ -86,6 +87,15 @@ export function HintsList({
   onSetWord: (slotId: string, word: string | null) => void
 }) {
   const [globalInput, setGlobalInput] = useState("")
+  const [letterFilter, setLetterFilter] = useState<string | null>(null)
+  const [hideCompleted, setHideCompleted] = useState(false)
+
+  // All unique first letters across prefixes, sorted.
+  const letters = useMemo(() => {
+    const set = new Set<string>()
+    for (const slot of hints) set.add(slot.prefix[0])
+    return Array.from(set).sort()
+  }, [hints])
 
   const groups = useMemo(() => {
     const map = new Map<string, HintSlot[]>()
@@ -97,31 +107,46 @@ export function HintsList({
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   }, [hints])
 
+  // Groups after applying filters.
+  const visibleGroups = useMemo(() => {
+    return groups.filter(([prefix, slots]) => {
+      if (letterFilter && prefix[0] !== letterFilter) return false
+      if (hideCompleted && slots.every((s) => s.word)) return false
+      return true
+    })
+  }, [groups, letterFilter, hideCompleted])
+
   function handleGlobalSubmit() {
     const trimmed = globalInput.trim().toUpperCase()
     if (trimmed.length < 3) return
-
-    // Extract first 3 letters as the prefix.
     const prefix = trimmed.substring(0, 3)
-
-    // Find the group with that prefix.
     const group = groups.find(([p]) => p === prefix)
     if (!group) return
-
-    // Find the first empty slot in that group.
-    const [, slots] = group
-    const emptySlot = slots.find((s) => !s.word)
+    const emptySlot = group[1].find((s) => !s.word)
     if (!emptySlot) return
-
-    // Set the word and clear the input.
     onSetWord(emptySlot.id, trimmed)
     setGlobalInput("")
   }
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
-      <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Hints</h2>
-      <div className="mb-4">
+      {/* Header row */}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Words</h2>
+        <Toggle
+          size="sm"
+          pressed={hideCompleted}
+          onPressedChange={setHideCompleted}
+          aria-label="Hide completed words"
+          className="gap-1.5 text-xs"
+        >
+          <EyeOff size={13} />
+          Hide completed
+        </Toggle>
+      </div>
+
+      {/* Global word entry */}
+      <div className="mb-3">
         <Input
           value={globalInput}
           onChange={(e) => setGlobalInput(e.target.value)}
@@ -138,8 +163,46 @@ export function HintsList({
           className="h-9 font-mono text-sm uppercase"
         />
       </div>
+
+      {/* Letter filter pills */}
+      {letters.length > 1 && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setLetterFilter(null)}
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+              letterFilter === null
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/70",
+            )}
+            aria-pressed={letterFilter === null}
+          >
+            All
+          </button>
+          {letters.map((l) => (
+            <button
+              key={l}
+              onClick={() => setLetterFilter(letterFilter === l ? null : l)}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 font-mono text-xs font-medium transition-colors",
+                letterFilter === l
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70",
+              )}
+              aria-pressed={letterFilter === l}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Groups grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {groups.map(([prefix, slots]) => {
+        {visibleGroups.length === 0 && (
+          <p className="col-span-2 py-4 text-center text-sm text-muted-foreground">No groups match the current filters.</p>
+        )}
+        {visibleGroups.map(([prefix, slots]) => {
           const done = slots.filter((s) => s.word).length
           const complete = done === slots.length
           return (
