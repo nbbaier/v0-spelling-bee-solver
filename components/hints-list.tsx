@@ -219,9 +219,11 @@ export function HintsList({
                 </span>
               </div>
               <div className="flex flex-col gap-2">
-                {slots.map((slot) => (
-                  <SlotInput key={slot.id} slot={slot} onCommit={(w) => onSetWord(slot.id, w)} />
-                ))}
+                {slots
+                  .filter((slot) => !(hideCompleted && slot.word))
+                  .map((slot) => (
+                    <SlotInput key={slot.id} slot={slot} onCommit={(w) => onSetWord(slot.id, w)} />
+                  ))}
               </div>
             </div>
           )
