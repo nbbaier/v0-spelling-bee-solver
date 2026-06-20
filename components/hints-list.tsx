@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { HintSlot } from "@/lib/types"
+import { X } from "lucide-react"
 
 function SlotInput({
   slot,
@@ -13,6 +14,7 @@ function SlotInput({
   onCommit: (word: string | null) => void
 }) {
   const [value, setValue] = useState(slot.word ?? "")
+  const [showDelete, setShowDelete] = useState(false)
 
   // Keep local state in sync if the puzzle is reset/loaded externally.
   useEffect(() => {
@@ -26,26 +28,53 @@ function SlotInput({
     onCommit(trimmed.length > 0 ? trimmed : null)
   }
 
+  function handleDelete() {
+    setValue("")
+    onCommit(null)
+    setShowDelete(false)
+  }
+
   return (
-    <Input
-      aria-label={`${slot.prefix} word`}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.currentTarget.blur()
-        }
-      }}
-      placeholder={slot.prefix.toLowerCase() + "…"}
-      autoCapitalize="characters"
-      autoCorrect="off"
-      spellCheck={false}
-      className={cn(
-        "h-9 font-mono text-sm uppercase",
-        filled && "border-primary/60 bg-primary/10 font-semibold",
+    <div
+      className="relative"
+      onMouseEnter={() => filled && setShowDelete(true)}
+      onMouseLeave={() => setShowDelete(false)}
+    >
+      <Input
+        aria-label={`${slot.prefix} word`}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur()
+          }
+        }}
+        placeholder={slot.prefix.toLowerCase() + "…"}
+        autoCapitalize="characters"
+        autoCorrect="off"
+        spellCheck={false}
+        className={cn(
+          "h-9 font-mono text-sm uppercase",
+          filled && "border-primary/60 bg-primary/10 font-semibold pr-10",
+        )}
+      />
+      {filled && (
+        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">{value.length}</span>
+          {showDelete && (
+            <button
+              onClick={handleDelete}
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-destructive transition-colors hover:bg-destructive/20"
+              aria-label="Delete word"
+              type="button"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       )}
-    />
+    </div>
   )
 }
 
