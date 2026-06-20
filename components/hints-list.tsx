@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import type { HintSlot } from "@/lib/types"
 import { EyeOff, X, Trash2 } from "lucide-react"
-import { clearAllWordsAction } from "@/app/actions"
+import { clearAllWordsAction, clearWordsForSlotsAction } from "@/app/actions"
 
 // Returns true if every character in word is in the allowed set.
 function hasOnlyAllowedLetters(word: string, allowed: string[]): boolean {
@@ -212,13 +212,20 @@ export function HintsList({
   const handleClearAll = useCallback(async () => {
     setIsClearing(true)
     try {
-      await clearAllWordsAction(date)
+      if (letterFilter) {
+        const slotIds = groups
+          .filter(([prefix]) => prefix[0] === letterFilter)
+          .flatMap(([, slots]) => slots.map((s) => s.id))
+        await clearWordsForSlotsAction(date, slotIds)
+      } else {
+        await clearAllWordsAction(date)
+      }
       onClearAllWords()
       setShowClearDialog(false)
     } finally {
       setIsClearing(false)
     }
-  }, [date, onClearAllWords])
+  }, [date, letterFilter, groups, onClearAllWords])
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">

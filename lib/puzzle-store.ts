@@ -64,6 +64,12 @@ export async function clearAllWords(date: string): Promise<void> {
   await redis.del(keys.words(date))
 }
 
+// Clears entered words for a specific set of slot IDs.
+export async function clearWordsForSlots(date: string, slotIds: string[]): Promise<void> {
+  if (!slotIds.length) return
+  await redis.hdel(keys.words(date), ...slotIds)
+}
+
 // Lists all saved puzzle dates, most recent first.
 export async function listDates(): Promise<string[]> {
   const dates = await redis.smembers(keys.dates())
