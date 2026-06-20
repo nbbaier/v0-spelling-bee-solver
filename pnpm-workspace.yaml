@@ -1,3 +1,5 @@
-allowBuilds:
-  msw: true
-  sharp: true
+packages:
+  - .
+neverBuiltDependencies:
+  - msw
+  - sharp
