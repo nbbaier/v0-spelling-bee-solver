@@ -18,11 +18,21 @@ export const keys = {
 
 // Returns today's date as an ISO YYYY-MM-DD string in local time.
 export function todayISO(): string {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, "0")
-  const d = String(now.getDate()).padStart(2, "0")
+  return toLocalISO(new Date())
+}
+
+// Converts a Date to a local-time YYYY-MM-DD string (avoids UTC offset issues).
+export function toLocalISO(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
   return `${y}-${m}-${d}`
+}
+
+// Parses a YYYY-MM-DD string as a local-time Date (new Date("YYYY-MM-DD") parses as UTC).
+export function parseLocalDate(iso: string): Date {
+  const [y, mo, d] = iso.split("-").map(Number)
+  return new Date(y, mo - 1, d)
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/

@@ -10,6 +10,7 @@ import { ProgressSummary } from "@/components/progress-summary"
 import { SetupPanel } from "@/components/setup-panel"
 import { usePuzzle } from "@/hooks/use-puzzle"
 import { derive } from "@/lib/derive"
+import { parseLocalDate, toLocalISO } from "@/lib/keys"
 import type { HintSlot, MatrixData } from "@/lib/types"
 
 export function SolverApp() {
@@ -28,7 +29,7 @@ export function SolverApp() {
 
   // Convert date strings to Date objects for the date picker
   const disabledDates = useMemo(() => {
-    return dates.map(d => new Date(d))
+    return dates.map(d => parseLocalDate(d))
   }, [dates])
 
   // onLoad receives the target id (a date string or "sample") from SetupPanel.
@@ -63,8 +64,8 @@ export function SolverApp() {
             </span>
           ) : (
             <DatePicker
-              value={new Date(date)}
-              onDateChange={(d) => handleDateChange(d.toISOString().split('T')[0])}
+              value={parseLocalDate(date)}
+              onDateChange={(d) => handleDateChange(toLocalISO(d))}
               disabledDates={disabledDates}
               enabledDateIndicator
             />
