@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react"
 import useSWR from "swr"
-import { deletePuzzleAction, savePuzzleAction, setWordAction } from "@/app/actions"
+import { deletePuzzleAction, savePuzzleAction, setWordAction, clearAllWordsAction } from "@/app/actions"
 import { isSampleId, SAMPLE_ID, todayISO } from "@/lib/keys"
 import type { HintSlot, MatrixData, Puzzle } from "@/lib/types"
 
@@ -103,8 +103,38 @@ export function usePuzzle() {
     }
   }, [date, dates, mutate])
 
+  // Clear all entered words for the current puzzle.
+  const clearAllWords = useCallback(() => {
+    mutate(
+      async (current) => {
+        await clearAllWordsAction(date)
+        if (!current?.puzzle) return current as PuzzleResponse
+        return {
+          ...current,
+          puzzle: {
+            ...current.puzzle,
+            hints: current.puzzle.hints.map((s) => ({ ...s, word: null })),
+          },
+        }
+      },
+      {
+        optimisticData: (current) => {
+          if (!current?.puzzle) return current as PuzzleResponse
+          return {
+            ...current,
+            puzzle: {
+              ...current.puzzle,
+              hints: current.puzzle.hints.map((s) => ({ ...s, word: null })),
+            },
+          }
+        },
+        revalidate: false,
+      },
+    )
+  }, [date, mutate])
+
   const isSample = isSampleId(date)
   const loadSample = useCallback(() => setDate(SAMPLE_ID), [setDate])
 
-  return { date, setDate, isSample, loadSample, puzzle, dates, isLoading, saving, savePuzzle, setWord, deletePuzzle }
+  return { date, setDate, isSample, loadSample, puzzle, dates, isLoading, saving, savePuzzle, setWord, deletePuzzle, clearAllWords }
 }

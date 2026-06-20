@@ -59,6 +59,11 @@ export async function deletePuzzle(date: string): Promise<void> {
   await Promise.all(ops)
 }
 
+// Clears all entered words for a puzzle, resetting the progress.
+export async function clearAllWords(date: string): Promise<void> {
+  await redis.del(keys.words(date))
+}
+
 // Lists all saved puzzle dates, most recent first.
 export async function listDates(): Promise<string[]> {
   const dates = await redis.smembers(keys.dates())

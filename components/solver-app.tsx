@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/ui/date-picker"
 import { HintsList } from "@/components/hints-list"
 import { MatrixGrid } from "@/components/matrix-grid"
 import { ProgressSummary } from "@/components/progress-summary"
@@ -12,7 +13,7 @@ import { derive } from "@/lib/derive"
 import type { HintSlot, MatrixData } from "@/lib/types"
 
 export function SolverApp() {
-  const { date, setDate, isSample, loadSample, puzzle, isLoading, saving, savePuzzle, setWord, deletePuzzle } = usePuzzle()
+  const { date, setDate, isSample, loadSample, puzzle, isLoading, saving, savePuzzle, setWord, deletePuzzle, dates, clearAllWords } = usePuzzle()
   const [forceLoader, setForceLoader] = useState(false)
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle])
@@ -24,6 +25,11 @@ export function SolverApp() {
     },
     [setDate],
   )
+
+  // Convert date strings to Date objects for the date picker
+  const disabledDates = useMemo(() => {
+    return dates.map(d => new Date(d))
+  }, [dates])
 
   // onLoad receives the target id (a date string or "sample") from SetupPanel.
   // Pass it through to savePuzzle so the hook can switch the SWR key atomically.
@@ -56,12 +62,11 @@ export function SolverApp() {
               Sample data
             </span>
           ) : (
-            <Input
-              type="date"
-              aria-label="Puzzle date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="w-auto"
+            <DatePicker
+              value={new Date(date)}
+              onDateChange={(d) => handleDateChange(d.toISOString().split('T')[0])}
+              disabledDates={disabledDates}
+              enabledDateIndicator
             />
           )}
           {saving ? <span className="text-xs text-muted-foreground">Saving…</span> : null}
@@ -94,7 +99,7 @@ export function SolverApp() {
             <MatrixGrid puzzle={puzzle!} derived={derived} />
           </div>
           <div className="space-y-4 lg:col-span-2">
-            <HintsList hints={puzzle!.hints} allowedLetters={puzzle!.letters} onSetWord={setWord} />
+            <HintsList hints={puzzle!.hints} allowedLetters={puzzle!.letters} onSetWord={setWord} date={date} onClearAllWords={clearAllWords} />
             <Button variant="ghost" size="sm" onClick={deletePuzzle} className="text-muted-foreground">
               Delete this puzzle
             </Button>

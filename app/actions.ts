@@ -34,3 +34,8 @@ export async function deletePuzzleAction(date: string) {
   if (!isValidPuzzleId(date)) throw new Error("Invalid puzzle id")
   await store.deletePuzzle(date)
 }
+
+export async function clearAllWordsAction(date: string) {
+  if (!isValidPuzzleId(date)) throw new Error("Invalid puzzle id")
+  await store.clearAllWords(date)
+}

@@ -1,11 +1,23 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Toggle } from "@/components/ui/toggle"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import type { HintSlot } from "@/lib/types"
-import { EyeOff, X } from "lucide-react"
+import { EyeOff, X, Trash2 } from "lucide-react"
+import { clearAllWordsAction } from "@/app/actions"
 
 // Returns true if every character in word is in the allowed set.
 function hasOnlyAllowedLetters(word: string, allowed: string[]): boolean {
@@ -123,15 +135,21 @@ export function HintsList({
   hints,
   allowedLetters,
   onSetWord,
+  date,
+  onClearAllWords,
 }: {
   hints: HintSlot[]
   allowedLetters: string[]
   onSetWord: (slotId: string, word: string | null) => void
+  date: string
+  onClearAllWords: () => void
 }) {
   const [globalInput, setGlobalInput] = useState("")
   const [globalError, setGlobalError] = useState<string | null>(null)
   const [letterFilter, setLetterFilter] = useState<string | null>(null)
   const [hideCompleted, setHideCompleted] = useState(false)
+  const [showClearDialog, setShowClearDialog] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
   // All unique first letters across prefixes, sorted.
   const letters = useMemo(() => {
@@ -191,21 +209,44 @@ export function HintsList({
     setGlobalError(null)
   }
 
+  const handleClearAll = useCallback(async () => {
+    setIsClearing(true)
+    try {
+      await clearAllWordsAction(date)
+      onClearAllWords()
+      setShowClearDialog(false)
+    } finally {
+      setIsClearing(false)
+    }
+  }, [date, onClearAllWords])
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
       {/* Header row */}
       <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Words</h2>
-        <Toggle
-          size="sm"
-          pressed={hideCompleted}
-          onPressedChange={setHideCompleted}
-          aria-label="Hide completed words"
-          className="gap-1.5 text-xs"
-        >
-          <EyeOff size={13} />
-          Hide completed
-        </Toggle>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowClearDialog(true)}
+            className="gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+            disabled={isClearing || hints.every((h) => !h.word)}
+          >
+            <Trash2 size={13} />
+            Clear all
+          </Button>
+          <Toggle
+            size="sm"
+            pressed={hideCompleted}
+            onPressedChange={setHideCompleted}
+            aria-label="Hide completed words"
+            className="gap-1.5 text-xs"
+          >
+            <EyeOff size={13} />
+            Hide completed
+          </Toggle>
+        </div>
       </div>
 
       {/* Global word entry */}
@@ -302,6 +343,28 @@ export function HintsList({
           )
         })}
       </div>
+
+      {/* Clear all confirmation dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all words?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete all entered words for {letterFilter ? `words starting with "${letterFilter}"` : "this puzzle"}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              disabled={isClearing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isClearing ? "Clearing…" : "Clear all"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
