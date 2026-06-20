@@ -27,7 +27,7 @@ export function todayISO(): string {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
-export function isValidDate(date: string): boolean {
+function isValidDate(date: string): boolean {
   return DATE_RE.test(date)
 }
 
