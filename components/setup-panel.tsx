@@ -186,7 +186,9 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
   function handleDateSelect(next: string) {
     runFetch(
       () => fetchPuzzleByDateAction(next),
-      () => next,
+      // The action verifies the page date matches `next`; prefer the page's own
+      // date as the save target, falling back to the request when it's absent.
+      (result) => result.date ?? next,
       "Couldn't reach sbsolver. Try again."
     );
   }
@@ -439,7 +441,7 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
 
           <Button
             className="w-full"
-            disabled={!canSubmit || saving}
+            disabled={!canSubmit || saving || fetching}
             onClick={handleLoad}
           >
             {loadButtonLabel(Boolean(saving), mode)}
