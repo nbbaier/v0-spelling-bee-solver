@@ -30,6 +30,29 @@ export function SolverApp() {
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle]);
 
+  // For each first letter, the word lengths that still have at least one unfound
+  // answer. Used by the hint list to show, per prefix group, which lengths the
+  // remaining slots could be. Coarse by design (the matrix is letter × length,
+  // not prefix × length) — see CONTEXT.md → Matrix.
+  const availableLengthsByLetter = useMemo(() => {
+    if (!(puzzle && derived)) {
+      return {} as Record<string, number[]>;
+    }
+    const out: Record<string, number[]> = {};
+    for (const letter of puzzle.letters) {
+      const lengths: number[] = [];
+      for (const len of puzzle.lengths) {
+        const total = puzzle.grid[letter]?.[len] ?? 0;
+        const found = derived.found[letter]?.[len] ?? 0;
+        if (total - found > 0) {
+          lengths.push(len);
+        }
+      }
+      out[letter] = lengths;
+    }
+    return out;
+  }, [puzzle, derived]);
+
   const handleDateChange = useCallback(
     (next: string) => {
       setForceLoader(false);
@@ -102,6 +125,8 @@ export function SolverApp() {
           <div className="space-y-4 lg:col-span-2">
             <HintsList
               allowedLetters={puzzle.letters}
+              availableLengthsByLetter={availableLengthsByLetter}
+              centerLetter={puzzle.centerLetter}
               date={date}
               hints={puzzle.hints}
               onClearAllWords={clearAllWords}

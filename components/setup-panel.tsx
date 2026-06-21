@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { fetchPuzzleFromUrlAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -9,8 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { parseLocalDate, SAMPLE_ID } from "@/lib/keys";
 import { parseHints, parseMatrix } from "@/lib/parse";
-import { SAMPLE_HINTS, SAMPLE_MATRIX } from "@/lib/sample";
+import {
+  SAMPLE_CENTER_LETTER,
+  SAMPLE_HINTS,
+  SAMPLE_MATRIX,
+} from "@/lib/sample";
 import type { HintSlot, MatrixData } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const MATRIX_PLACEHOLDER =
   "\t4\t5\t6\t7\nD\t2\t3\t1\t1\nO\t1\t2\t\t\nN\t\t1\t1\t";
@@ -32,11 +37,66 @@ function loadButtonLabel(saving: boolean, mode: Mode): string {
   return mode === "sample" ? "Load sample data" : "Load puzzle";
 }
 
+function CenterLetterPicker({
+  letters,
+  value,
+  onChange,
+}: {
+  letters: string[];
+  value: string | null;
+  onChange: (next: string | null) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>Center letter</Label>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          aria-pressed={value === null}
+          className={cn(
+            "rounded-full px-2.5 py-0.5 font-medium text-xs transition-colors",
+            value === null
+              ? "bg-muted text-muted-foreground"
+              : "text-muted-foreground hover:bg-muted/60"
+          )}
+          onClick={() => onChange(null)}
+          type="button"
+        >
+          Unknown
+        </button>
+        {letters.map((l) => {
+          const selected = value === l;
+          return (
+            <button
+              aria-pressed={selected}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+                selected
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/60"
+              )}
+              key={l}
+              onClick={() => onChange(selected ? null : l)}
+              type="button"
+            >
+              {l}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-muted-foreground text-xs">
+        The required letter for every answer. Fetched from sbsolver
+        automatically; pick it manually if you pasted the grid by hand.
+      </p>
+    </div>
+  );
+}
+
 export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
   const [mode, setMode] = useState<Mode>("date");
   const [matrixText, setMatrixText] = useState("");
   const [hintsText, setHintsText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [centerLetter, setCenterLetter] = useState<string | null>(null);
 
   // URL-fetch state.
   const [url, setUrl] = useState("");
@@ -47,6 +107,20 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
   // SWR key changes; it becomes the save target at Load time.
   const [fetchedDate, setFetchedDate] = useState<string | null>(null);
   const [failedPrefixes, setFailedPrefixes] = useState<string[]>([]);
+
+  // Live-parse the matrix so the center-letter pills reflect the letters the
+  // user has actually entered. A failed parse (e.g. mid-typing) just yields an
+  // empty list — the load-time parse will surface the real error.
+  const parsedLetters = useMemo(() => {
+    if (matrixText.trim().length === 0) {
+      return [];
+    }
+    try {
+      return parseMatrix(matrixText).letters;
+    } catch {
+      return [];
+    }
+  }, [matrixText]);
 
   async function handleFetch() {
     setFetchError(null);
@@ -62,6 +136,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
       setHintsText(result.hintsText);
       setFetchedDate(result.date);
       setFailedPrefixes(result.failedPrefixes);
+      setCenterLetter(result.centerLetter);
     } catch {
       setFetchError("Couldn't reach the puzzle. Check the URL and try again.");
     } finally {
@@ -81,7 +156,11 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
       try {
         const { letters, lengths, grid } = parseMatrix(SAMPLE_MATRIX);
         const hints = parseHints(SAMPLE_HINTS);
-        onLoad({ letters, lengths, grid }, hints, SAMPLE_ID);
+        onLoad(
+          { centerLetter: SAMPLE_CENTER_LETTER, letters, lengths, grid },
+          hints,
+          SAMPLE_ID
+        );
       } catch (e) {
         setError(
           e instanceof Error ? e.message : "Could not parse the sample."
@@ -92,7 +171,11 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
     try {
       const { letters, lengths, grid } = parseMatrix(matrixText);
       const hints = parseHints(hintsText);
-      onLoad({ letters, lengths, grid }, hints, fetchedDate ?? date);
+      onLoad(
+        { centerLetter, letters, lengths, grid },
+        hints,
+        fetchedDate ?? date
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not parse the puzzle.");
     }
@@ -246,6 +329,12 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
                   rows/columns are ignored.
                 </p>
               </div>
+
+              <CenterLetterPicker
+                letters={parsedLetters}
+                onChange={setCenterLetter}
+                value={centerLetter}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="hints">Hint list</Label>

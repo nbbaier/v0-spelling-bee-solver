@@ -6,6 +6,10 @@ A glossary of the domain language for this project. Terms only — no implementa
 
 A single day's New York Times Spelling Bee, identified in this app by its **date** (`YYYY-MM-DD`). Date is the storage key. sbsolver instead identifies a puzzle by a number (`/nt/2965`) or by its letter string (`/nt/Rdginow`); neither is a date, so a puzzle's date must be read from the page itself.
 
+## Center letter
+
+The one puzzle letter that must appear in **every** answer. sbsolver marks it two ways on a puzzle page: the hive's yellow hexagon `<img>` has `alt="center letter R"`, and the `#string` input (and the URL path) capitalizes it (`Rdginow`). This app scrapes it from those signals and stores it on `MatrixData.centerLetter` (nullable — the tab-separated grid alone carries no center info, so a hand-pasted puzzle starts null until the user picks one in the setup panel).
+
 ## Matrix (a.k.a. Grid)
 
 The letters × word-length table: rows are the puzzle's letters, columns are word lengths, each cell is the count of answers of that letter and length. Corresponds to sbsolver's `bee bee-grid` table.

@@ -2,6 +2,8 @@
 // without copying from sbsolver. The matrix is tab-separated like a real
 // sbsolver paste (with a totals row/column that the parser ignores).
 
+export const SAMPLE_CENTER_LETTER = "O";
+
 export const SAMPLE_MATRIX = [
   "\t4\t5\t6\t7\tΣ",
   "D\t2\t3\t1\t1\t7",

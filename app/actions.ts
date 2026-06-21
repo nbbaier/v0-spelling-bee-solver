@@ -16,6 +16,7 @@ import type { HintSlot, MatrixData } from "@/lib/types";
 export type FetchPuzzleResult =
   | {
       ok: true;
+      centerLetter: string | null;
       matrixText: string;
       hintsText: string;
       date: string | null;
@@ -27,9 +28,16 @@ export async function fetchPuzzleFromUrlAction(
   url: string
 ): Promise<FetchPuzzleResult> {
   try {
-    const { matrixText, hintsText, date, failedPrefixes } =
+    const { matrixText, hintsText, date, centerLetter, failedPrefixes } =
       await scrapePuzzle(url);
-    return { ok: true, matrixText, hintsText, date, failedPrefixes };
+    return {
+      ok: true,
+      matrixText,
+      hintsText,
+      date,
+      centerLetter,
+      failedPrefixes,
+    };
   } catch (e) {
     return {
       ok: false,
