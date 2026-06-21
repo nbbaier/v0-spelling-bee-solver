@@ -25,9 +25,7 @@ export type FetchPuzzleResult =
     }
   | { ok: false; error: string };
 
-export async function fetchPuzzleFromUrlAction(
-  url: string
-): Promise<FetchPuzzleResult> {
+async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
   try {
     const { matrixText, hintsText, date, centerLetter, failedPrefixes } =
       await scrapePuzzle(url);
@@ -47,36 +45,22 @@ export async function fetchPuzzleFromUrlAction(
   }
 }
 
+export async function fetchPuzzleFromUrlAction(
+  url: string
+): Promise<FetchPuzzleResult> {
+  return await fetchPuzzle(url);
+}
+
 export async function fetchPuzzleByDateAction(
   dateIso: string
 ): Promise<FetchPuzzleResult> {
   if (!isPuzzleDateInRange(dateIso)) {
-    return {
-      ok: false,
-      error: "No puzzle is available for that date.",
-    };
+    return { ok: false, error: "No puzzle is available for that date." };
   }
   // sbsolver accepts the numeric puzzle id directly (/nt/<number>), so the date
   // resolves to a URL with no extra lookup. See lib/puzzle-date.ts.
-  const puzzleNumber = puzzleNumberForDate(dateIso);
-  const url = `https://www.sbsolver.com/nt/${puzzleNumber}`;
-  try {
-    const { matrixText, hintsText, date, centerLetter, failedPrefixes } =
-      await scrapePuzzle(url);
-    return {
-      ok: true,
-      matrixText,
-      hintsText,
-      date,
-      centerLetter,
-      failedPrefixes,
-    };
-  } catch (e) {
-    return {
-      ok: false,
-      error: e instanceof Error ? e.message : "Could not fetch that puzzle.",
-    };
-  }
+  const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(dateIso)}`;
+  return await fetchPuzzle(url);
 }
 
 export async function savePuzzleAction(

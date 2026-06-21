@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
+  type FetchPuzzleResult,
   fetchPuzzleByDateAction,
   fetchPuzzleFromUrlAction,
 } from "@/app/actions";
@@ -29,7 +30,6 @@ type Mode = "date" | "sample";
 
 interface Props {
   date: string;
-  onDateChange: (date: string) => void;
   onLoad: (matrix: MatrixData, hints: HintSlot[], id: string) => void;
   saving?: boolean;
 }
@@ -95,7 +95,7 @@ function CenterLetterPicker({
   );
 }
 
-export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
+export function SetupPanel({ date, onLoad, saving }: Props) {
   const [mode, setMode] = useState<Mode>("date");
   const [matrixText, setMatrixText] = useState("");
   const [hintsText, setHintsText] = useState("");
@@ -106,9 +106,9 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
   const [url, setUrl] = useState("");
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  // Date scraped from the page. We hold it locally (rather than calling
-  // onDateChange) so the fetched textareas aren't lost to a remount when the
-  // SWR key changes; it becomes the save target at Load time.
+  // The resolved save target (picked date, or the URL page's own date). Held
+  // locally rather than pushed to the parent SWR key, so a fetch never remounts
+  // this panel and discards the fields; it's committed to the parent at Load.
   const [fetchedDate, setFetchedDate] = useState<string | null>(null);
   const [failedPrefixes, setFailedPrefixes] = useState<string[]>([]);
 
@@ -126,60 +126,77 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
     }
   }, [matrixText]);
 
+  // Monotonic token so a slow earlier request can't overwrite the fields after a
+  // newer one has already landed (e.g. the user picks several dates quickly).
+  const requestToken = useRef(0);
+
   // Fill the editable fields from a successful scrape (shared by the date and
-  // URL paths). `scrapedDate` is the page's own date for the URL path; the date
-  // path already knows its target date, so it passes null.
+  // URL paths). `targetDate` becomes the save target: the picked date for the
+  // date path, or the page's own date (which may be null) for the URL path.
   function applyResult(
     result: Extract<
       Awaited<ReturnType<typeof fetchPuzzleByDateAction>>,
       { ok: true }
     >,
-    scrapedDate: string | null
+    targetDate: string | null
   ) {
     setMatrixText(result.matrixText);
     setHintsText(result.hintsText);
-    setFetchedDate(scrapedDate);
+    setFetchedDate(targetDate);
     setFailedPrefixes(result.failedPrefixes);
     setCenterLetter(result.centerLetter);
   }
 
-  // Picking a date is the primary way to load a puzzle: resolve it to the
-  // sbsolver puzzle number server-side and scrape it automatically.
-  async function handleDateSelect(next: string) {
-    onDateChange(next);
+  // Runs a scrape and applies it only if no newer request has started. Keeps the
+  // resolved date local (via applyResult → fetchedDate) rather than touching the
+  // parent SWR key, so this panel isn't remounted mid-fetch.
+  async function runFetch(
+    fetcher: () => Promise<FetchPuzzleResult>,
+    targetDate: (result: FetchPuzzleResult & { ok: true }) => string | null,
+    reachError: string
+  ) {
+    const token = ++requestToken.current;
     setFetchError(null);
     setError(null);
     setFetching(true);
     try {
-      const result = await fetchPuzzleByDateAction(next);
-      if (!result.ok) {
-        setFetchError(result.error);
-        return;
+      const result = await fetcher();
+      if (token !== requestToken.current) {
+        return; // a newer request superseded this one
       }
-      applyResult(result, null);
+      if (result.ok) {
+        applyResult(result, targetDate(result));
+      } else {
+        setFetchError(result.error);
+      }
     } catch {
-      setFetchError("Couldn't reach sbsolver. Try again.");
+      if (token === requestToken.current) {
+        setFetchError(reachError);
+      }
     } finally {
-      setFetching(false);
+      if (token === requestToken.current) {
+        setFetching(false);
+      }
     }
   }
 
-  async function handleFetch() {
-    setFetchError(null);
-    setError(null);
-    setFetching(true);
-    try {
-      const result = await fetchPuzzleFromUrlAction(url);
-      if (!result.ok) {
-        setFetchError(result.error);
-        return;
-      }
-      applyResult(result, result.date);
-    } catch {
-      setFetchError("Couldn't reach the puzzle. Check the URL and try again.");
-    } finally {
-      setFetching(false);
-    }
+  // Picking a date is the primary way to load a puzzle: it resolves to the
+  // sbsolver puzzle number server-side and scrapes automatically. The picked
+  // date is the save target.
+  function handleDateSelect(next: string) {
+    runFetch(
+      () => fetchPuzzleByDateAction(next),
+      () => next,
+      "Couldn't reach sbsolver. Try again."
+    );
+  }
+
+  function handleFetch() {
+    runFetch(
+      () => fetchPuzzleFromUrlAction(url),
+      (result) => result.date,
+      "Couldn't reach the puzzle. Check the URL and try again."
+    );
   }
 
   function handleLoad() {

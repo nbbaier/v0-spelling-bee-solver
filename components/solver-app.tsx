@@ -105,12 +105,7 @@ export function SolverApp() {
               </Button>
             </div>
           ) : null}
-          <SetupPanel
-            date={date}
-            onDateChange={handleDateChange}
-            onLoad={handleLoad}
-            saving={saving}
-          />
+          <SetupPanel date={date} onLoad={handleLoad} saving={saving} />
         </div>
       );
     }
