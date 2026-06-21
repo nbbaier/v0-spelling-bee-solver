@@ -7,7 +7,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SAMPLE_ID } from "@/lib/keys";
+import { parseLocalDate, SAMPLE_ID } from "@/lib/keys";
 import { parseHints, parseMatrix } from "@/lib/parse";
 import { SAMPLE_HINTS, SAMPLE_MATRIX } from "@/lib/sample";
 import type { HintSlot, MatrixData } from "@/lib/types";
@@ -23,12 +23,6 @@ interface Props {
   onDateChange: (date: string) => void;
   onLoad: (matrix: MatrixData, hints: HintSlot[], id: string) => void;
   saving?: boolean;
-}
-
-// Parse an ISO "YYYY-MM-DD" string into a local-time Date.
-function isoToDate(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
 }
 
 function loadButtonLabel(saving: boolean, mode: Mode): string {
@@ -229,7 +223,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
                     const day = String(d.getDate()).padStart(2, "0");
                     handleManualDate(`${y}-${m}-${day}`);
                   }}
-                  value={isoToDate(fetchedDate ?? date)}
+                  value={parseLocalDate(fetchedDate ?? date)}
                 />
 
                 <p className="text-muted-foreground text-xs">
