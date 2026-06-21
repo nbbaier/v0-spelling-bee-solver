@@ -439,7 +439,7 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
 
           <Button
             className="w-full"
-            disabled={!canSubmit || saving}
+            disabled={!canSubmit || saving || fetching}
             onClick={handleLoad}
           >
             {loadButtonLabel(Boolean(saving), mode)}

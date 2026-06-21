@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import {
   clearAllWordsAction,
   clearWordsForSlotsAction,
@@ -25,11 +25,14 @@ const fetcher = async (url: string): Promise<PuzzleResponse> => {
   return res.json();
 };
 
+const keyForDate = (d: string) => `/api/puzzle?date=${d}`;
+
 export function usePuzzle() {
   const [date, setDate] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
+  const { mutate: globalMutate } = useSWRConfig();
 
-  const key = `/api/puzzle?date=${date}`;
+  const key = keyForDate(date);
   const { data, isLoading, mutate } = useSWR<PuzzleResponse>(key, fetcher, {
     revalidateOnFocus: false,
   });
@@ -41,34 +44,40 @@ export function usePuzzle() {
   const savePuzzle = useCallback(
     async (matrix: MatrixData, hints: HintSlot[], targetId?: string) => {
       const id = targetId ?? date;
-      // If saving to a different id than the current SWR key, switch the date
-      // first so the mutate targets the right key.
-      if (targetId && targetId !== date) {
-        setDate(targetId);
-      }
-      setSaving(true);
       const next: Puzzle = { date: id, ...matrix, hints };
       const nextDates = isSampleId(id)
         ? dates
         : Array.from(new Set([id, ...dates]))
             .sort()
             .reverse();
+      const response: PuzzleResponse = { puzzle: next, dates: nextDates };
+
+      setSaving(true);
       try {
-        await mutate(
-          async () => {
-            await savePuzzleAction(id, matrix, hints);
-            return { puzzle: next, dates: nextDates };
-          },
-          {
-            optimisticData: { puzzle: next, dates: nextDates },
-            revalidate: false,
-          }
-        );
+        if (id === date) {
+          // Same-date save: the bound mutate targets the active key, so the
+          // optimistic write lands where it's displayed.
+          await mutate(
+            async () => {
+              await savePuzzleAction(id, matrix, hints);
+              return response;
+            },
+            { optimisticData: response, revalidate: false }
+          );
+          return;
+        }
+        // Cross-date save: persist first, then write the target key's cache via
+        // the global mutator and switch to it. The bound mutate is tied to the
+        // current (previous) key, and switching the date first would race an
+        // empty fetch for the target key.
+        await savePuzzleAction(id, matrix, hints);
+        await globalMutate(keyForDate(id), response, { revalidate: false });
+        setDate(id);
       } finally {
         setSaving(false);
       }
     },
-    [date, dates, mutate]
+    [date, dates, mutate, globalMutate]
   );
 
   // Record or clear a found word, with optimistic UI.

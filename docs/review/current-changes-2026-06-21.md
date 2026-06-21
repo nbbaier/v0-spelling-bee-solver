@@ -2,13 +2,33 @@
 
 ## Current verdict
 
-**Needs cleanup.**
+**Clean.**
 
-The first review's four findings have been addressed. The follow-up review found one important cache-boundary issue and two smaller correctness issues that remain.
+All findings from the review passes have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain.
 
 Priority measures impact; the review categories identify the underlying design concern.
 
 ## Resolved findings
+
+### Resolved: Date selection retained an unreachable null-date fallback
+
+**Area:** `components/setup-panel.tsx`, `handleDateSelect`
+
+**Categories:** Compatibility Cruft; Comment Slop; Minimality
+
+After the server action began rejecting missing page dates, the client still used `result.date ?? next` and described the now-impossible fallback in a comment.
+
+The date-selection path now uses the already verified requested date directly and the stale fallback comment has been removed.
+
+### Resolved: Missing scraped dates bypassed date-route verification
+
+**Area:** `app/actions.ts`, `fetchPuzzleByDateAction`
+
+**Categories:** Codebase Consistency; Composition and Boundaries
+
+The first verification fix rejected a non-null page date that differed from the request but still accepted a successful scrape with `date: null`. The client then fell back to the requested date despite having no page date to verify.
+
+The action now requires the parsed page date to equal the requested date. Missing and mismatched dates both return an explicit error instead of allowing the puzzle to be saved.
 
 ### Resolved: Date selection lost the fetched result
 
@@ -48,39 +68,25 @@ Both actions now delegate to one internal `fetchPuzzle` implementation.
 
 The unused `dateForPuzzleNumber` export has been removed, and the module commentary has been reduced.
 
-## Remaining findings
-
-### P1: Saving a fetched date mutates the previous SWR key
+### Resolved: Saving a fetched date mutated the previous SWR key
 
 **Area:** `hooks/use-puzzle.ts`, `savePuzzle`
 
 **Categories:** Composition and Boundaries; React / Next.js Quality
 
-When the fetched target date differs from the active date, `savePuzzle` calls `setDate(targetId)` and then immediately calls the `mutate` function bound by `useSWR`. The state update does not update SWR's key ref before that immediate mutation, so the optimistic and final results are written to the previous date's cache entry.
+The previous implementation called `setDate(targetId)` and then immediately used the `mutate` function bound to the prior SWR key. The target puzzle could be written into the previous date's cache while the new key raced the server save.
 
-Meanwhile, changing the date starts a request for the target key. That request can finish before `savePuzzleAction`, leaving the target view empty even though the save later succeeds, while the previous cache entry contains the target puzzle.
+Cross-date saves now persist first, seed the explicit target key with SWR's global mutator, and then switch dates. Same-date saves retain the bound optimistic mutation path.
 
-For cross-date saves, save first and then switch and revalidate, or use SWR's global mutator with the target key explicitly. Keep the bound mutation path for same-date saves.
-
-### P2: The date route does not verify the scraped page date
-
-**Area:** `app/actions.ts`, `fetchPuzzleByDateAction`; `components/setup-panel.tsx`, `handleDateSelect`
-
-**Categories:** Codebase Consistency; Composition and Boundaries
-
-The date action converts the requested date to a numeric sbsolver URL, but the client uses the requested date as the save target without checking the date parsed from the resulting page. A numbering gap, redirect, or upstream change could therefore store one day's puzzle under another date.
-
-The URL flow already treats the scraped `result.date` as authoritative. Have `fetchPuzzleByDateAction` reject a successful scrape whose parsed date does not match `dateIso`, then use the verified result date as the save target.
-
-### P2: Previous puzzle data remains loadable during a replacement fetch
+### Resolved: Previous puzzle data remained loadable during a replacement fetch
 
 **Area:** `components/setup-panel.tsx`, Load button
 
 **Categories:** React / Next.js Quality; Minimality
 
-Starting another date or URL fetch leaves the previous fields and target active while the Load button remains enabled. The user can save that previous puzzle while the replacement request is pending.
+The Load button previously remained enabled while a replacement date or URL fetch was pending, so the prior puzzle could be saved during that request.
 
-Reuse the existing `fetching` state in the real-puzzle Load button's disabled condition.
+The existing `fetching` state is now included in the button's disabled condition.
 
 ## Validation
 
