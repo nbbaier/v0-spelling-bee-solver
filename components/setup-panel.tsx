@@ -154,7 +154,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
                 <Label htmlFor="puzzle-url">Fetch from sbsolver URL</Label>
                 <div className="flex gap-2">
                   <Input
-                    className="font-mono text-sm"
+                    className="font-mono text-base md:text-sm"
                     id="puzzle-url"
                     inputMode="url"
                     onChange={(e) => {
@@ -234,7 +234,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
               <div className="space-y-2">
                 <Label htmlFor="matrix">Grid matrix (tab-separated)</Label>
                 <Textarea
-                  className="font-mono text-sm"
+                  className="font-mono text-base md:text-sm"
                   id="matrix"
                   onChange={(e) => setMatrixText(e.target.value)}
                   placeholder={MATRIX_PLACEHOLDER}
@@ -250,7 +250,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
               <div className="space-y-2">
                 <Label htmlFor="hints">Hint list</Label>
                 <Textarea
-                  className="font-mono text-sm"
+                  className="font-mono text-base md:text-sm"
                   id="hints"
                   onChange={(e) => setHintsText(e.target.value)}
                   placeholder={HINTS_PLACEHOLDER}

@@ -95,7 +95,7 @@ function SlotInput({
         autoCapitalize="characters"
         autoCorrect="off"
         className={cn(
-          "h-9 font-mono text-sm uppercase",
+          "h-9 font-mono text-base uppercase md:text-sm",
           filled &&
             !error &&
             "border-primary/60 bg-primary/10 pr-10 font-semibold",
@@ -277,7 +277,7 @@ export function HintsList({
           autoCapitalize="characters"
           autoCorrect="off"
           className={cn(
-            "h-9 font-mono text-sm uppercase",
+            "h-9 font-mono text-base uppercase md:text-sm",
             globalError &&
               "border-destructive bg-destructive/5 focus-visible:ring-destructive"
           )}
