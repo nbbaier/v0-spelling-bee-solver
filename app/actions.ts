@@ -63,12 +63,15 @@ export async function fetchPuzzleByDateAction(
   const result = await fetchPuzzle(url);
   // The date→number mapping assumes contiguous daily numbering; a gap, redirect,
   // or upstream change could resolve to a different day. The page states its own
-  // date, so reject any scrape that doesn't match what was requested rather than
-  // silently storing one day's puzzle under another date.
-  if (result.ok && result.date && result.date !== dateIso) {
+  // date, so only accept a scrape whose date matches the request — and treat a
+  // missing date (markup we couldn't read) as a verification failure too, rather
+  // than silently storing one day's puzzle under another date.
+  if (result.ok && result.date !== dateIso) {
     return {
       ok: false,
-      error: `That date resolved to the puzzle for ${result.date}. sbsolver's numbering may have shifted — try the URL option.`,
+      error: result.date
+        ? `That date resolved to the puzzle for ${result.date}. sbsolver's numbering may have shifted — try the URL option.`
+        : "Couldn't confirm the puzzle's date on that page — try the URL option.",
     };
   }
   return result;
