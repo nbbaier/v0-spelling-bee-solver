@@ -36,10 +36,13 @@ interface Props {
   // Dates that already have a saved puzzle — shown as indicators in the picker
   // and used to load existing puzzles directly instead of re-scraping.
   dates: string[];
+  // The date index failed to load; the picker stays disabled but offers a retry.
+  datesError: boolean;
   // Whether the date index has loaded; routing can't be decided until it has.
   datesReady: boolean;
   onAutoFetchHandled: () => void;
   onLoad: (matrix: MatrixData, hints: HintSlot[], id: string) => void;
+  onRetryDates: () => void;
   // Switch the app to an already-saved puzzle for this date (no scrape).
   onSelectExisting: (date: string) => void;
   saving?: boolean;
@@ -106,10 +109,55 @@ function CenterLetterPicker({
   );
 }
 
+// Inline status under the date picker: a fetch error, a "saved under another
+// date" note, or a partial-3-letter-hints warning.
+function FetchStatusMessages({
+  fetchError,
+  fetchedDate,
+  date,
+  failedPrefixes,
+}: {
+  fetchError: string | null;
+  fetchedDate: string | null;
+  date: string;
+  failedPrefixes: string[];
+}) {
+  return (
+    <>
+      {fetchError ? (
+        <p
+          className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm"
+          role="alert"
+        >
+          {fetchError}
+        </p>
+      ) : null}
+      {fetchedDate && fetchedDate !== date ? (
+        <p className="rounded-md bg-primary/10 px-3 py-2 text-foreground text-xs">
+          Fetched the puzzle for{" "}
+          <span className="font-semibold">{fetchedDate}</span> — it will be
+          saved under that date.
+        </p>
+      ) : null}
+      {failedPrefixes.length > 0 ? (
+        <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
+          Couldn&apos;t fetch the 3-letter hints for{" "}
+          <span className="font-mono font-semibold">
+            {failedPrefixes.join(", ")}
+          </span>
+          . Add those by hand in the hint list below.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 export function SetupPanel({
   date,
   dates,
   datesReady,
+  datesError,
+  onRetryDates,
   autoFetchDate,
   onAutoFetchHandled,
   onSelectExisting,
@@ -359,36 +407,28 @@ export function SetupPanel({
                       Fetching…
                     </span>
                   ) : null}
+                  {datesError ? (
+                    <Button
+                      onClick={onRetryDates}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      Couldn&apos;t load saved dates — retry
+                    </Button>
+                  ) : null}
                 </div>
                 <p className="text-muted-foreground text-xs">
                   Defaults to today. Pick any date back to May 9, 2018 to load
                   that day&apos;s puzzle automatically. Highlighted dates are
                   already saved and open instantly.
                 </p>
-                {fetchError ? (
-                  <p
-                    className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm"
-                    role="alert"
-                  >
-                    {fetchError}
-                  </p>
-                ) : null}
-                {fetchedDate && fetchedDate !== date ? (
-                  <p className="rounded-md bg-primary/10 px-3 py-2 text-foreground text-xs">
-                    Fetched the puzzle for{" "}
-                    <span className="font-semibold">{fetchedDate}</span> — it
-                    will be saved under that date.
-                  </p>
-                ) : null}
-                {failedPrefixes.length > 0 ? (
-                  <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
-                    Couldn&apos;t fetch the 3-letter hints for{" "}
-                    <span className="font-mono font-semibold">
-                      {failedPrefixes.join(", ")}
-                    </span>
-                    . Add those by hand in the hint list below.
-                  </p>
-                ) : null}
+                <FetchStatusMessages
+                  date={date}
+                  failedPrefixes={failedPrefixes}
+                  fetchError={fetchError}
+                  fetchedDate={fetchedDate}
+                />
               </div>
 
               <details className="rounded-lg border border-border bg-muted/30 px-4 py-3">

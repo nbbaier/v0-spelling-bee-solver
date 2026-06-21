@@ -42,7 +42,11 @@ export function usePuzzle() {
   });
   // The date index is one shared cache entry, so the saved-vs-unsaved answer is
   // the same no matter which date is currently active.
-  const { data: datesData } = useSWR<DatesResponse>(DATES_KEY, fetcher, {
+  const {
+    data: datesData,
+    error: datesErrorRaw,
+    mutate: reloadDates,
+  } = useSWR<DatesResponse>(DATES_KEY, fetcher, {
     revalidateOnFocus: false,
   });
 
@@ -52,6 +56,9 @@ export function usePuzzle() {
   // an empty `dates` is not proof that nothing is saved, so callers must not make
   // saved-vs-unsaved routing decisions yet.
   const datesReady = datesData !== undefined;
+  // Surface a load failure (only meaningful before any list has been cached) so
+  // the UI can offer a retry instead of leaving the pickers silently disabled.
+  const datesError = !datesReady && datesErrorRaw !== undefined;
 
   // Apply an update to the single date-index cache entry.
   const updateDates = useCallback(
@@ -210,6 +217,8 @@ export function usePuzzle() {
     puzzle,
     dates,
     datesReady,
+    datesError,
+    reloadDates,
     isLoading,
     saving,
     savePuzzle,
