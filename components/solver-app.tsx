@@ -27,6 +27,10 @@ export function SolverApp() {
     clearWords,
   } = usePuzzle();
   const [forceLoader, setForceLoader] = useState(false);
+  // When the user picks a date that has no saved puzzle, we drop into the loader
+  // and signal SetupPanel to scrape that date automatically. Cleared once the
+  // panel consumes it (see onAutoFetchHandled) so re-selecting a date re-fires.
+  const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle]);
 
@@ -53,12 +57,16 @@ export function SolverApp() {
     return out;
   }, [puzzle, derived]);
 
+  // Unified date selection for both pickers: a date that already has a saved
+  // puzzle switches straight to it; a date without one drops into the loader and
+  // flags it for an automatic scrape.
   const handleDateChange = useCallback(
     (next: string) => {
       setForceLoader(false);
       setDate(next);
+      setAutoFetchDate(dates.includes(next) ? null : next);
     },
-    [setDate]
+    [dates, setDate]
   );
 
   // Convert date strings to Date objects for the date picker
@@ -105,7 +113,15 @@ export function SolverApp() {
               </Button>
             </div>
           ) : null}
-          <SetupPanel date={date} onLoad={handleLoad} saving={saving} />
+          <SetupPanel
+            autoFetchDate={autoFetchDate}
+            date={date}
+            dates={dates}
+            onAutoFetchHandled={() => setAutoFetchDate(null)}
+            onLoad={handleLoad}
+            onSelectExisting={handleDateChange}
+            saving={saving}
+          />
         </div>
       );
     }

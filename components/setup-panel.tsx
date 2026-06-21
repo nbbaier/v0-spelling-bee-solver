@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type FetchPuzzleResult,
   fetchPuzzleByDateAction,
@@ -29,8 +29,17 @@ const HINTS_PLACEHOLDER = "DON x1  DOO x1  DRO x4  NOD x2";
 type Mode = "date" | "sample";
 
 interface Props {
+  // A date the parent wants scraped automatically (the user picked a date with
+  // no saved puzzle). Consumed once via onAutoFetchHandled.
+  autoFetchDate: string | null;
   date: string;
+  // Dates that already have a saved puzzle — shown as indicators in the picker
+  // and used to load existing puzzles directly instead of re-scraping.
+  dates: string[];
+  onAutoFetchHandled: () => void;
   onLoad: (matrix: MatrixData, hints: HintSlot[], id: string) => void;
+  // Switch the app to an already-saved puzzle for this date (no scrape).
+  onSelectExisting: (date: string) => void;
   saving?: boolean;
 }
 
@@ -95,7 +104,15 @@ function CenterLetterPicker({
   );
 }
 
-export function SetupPanel({ date, onLoad, saving }: Props) {
+export function SetupPanel({
+  date,
+  dates,
+  autoFetchDate,
+  onAutoFetchHandled,
+  onSelectExisting,
+  onLoad,
+  saving,
+}: Props) {
   const [mode, setMode] = useState<Mode>("date");
   const [matrixText, setMatrixText] = useState("");
   const [hintsText, setHintsText] = useState("");
@@ -126,6 +143,9 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
     }
   }, [matrixText]);
 
+  // Dates with a saved puzzle, as Date objects for the picker's indicators.
+  const datesWithData = useMemo(() => dates.map(parseLocalDate), [dates]);
+
   // Monotonic token so a slow earlier request can't overwrite the fields after a
   // newer one has already landed (e.g. the user picks several dates quickly).
   const requestToken = useRef(0);
@@ -133,63 +153,77 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
   // Fill the editable fields from a successful scrape (shared by the date and
   // URL paths). `targetDate` becomes the save target: the picked date for the
   // date path, or the page's own date (which may be null) for the URL path.
-  function applyResult(
-    result: Extract<
-      Awaited<ReturnType<typeof fetchPuzzleByDateAction>>,
-      { ok: true }
-    >,
-    targetDate: string | null
-  ) {
-    setMatrixText(result.matrixText);
-    setHintsText(result.hintsText);
-    setFetchedDate(targetDate);
-    setFailedPrefixes(result.failedPrefixes);
-    setCenterLetter(result.centerLetter);
-  }
+  const applyResult = useCallback(
+    (
+      result: Extract<
+        Awaited<ReturnType<typeof fetchPuzzleByDateAction>>,
+        { ok: true }
+      >,
+      targetDate: string | null
+    ) => {
+      setMatrixText(result.matrixText);
+      setHintsText(result.hintsText);
+      setFetchedDate(targetDate);
+      setFailedPrefixes(result.failedPrefixes);
+      setCenterLetter(result.centerLetter);
+    },
+    []
+  );
 
   // Runs a scrape and applies it only if no newer request has started. Keeps the
   // resolved date local (via applyResult → fetchedDate) rather than touching the
   // parent SWR key, so this panel isn't remounted mid-fetch.
-  async function runFetch(
-    fetcher: () => Promise<FetchPuzzleResult>,
-    targetDate: (result: FetchPuzzleResult & { ok: true }) => string | null,
-    reachError: string
-  ) {
-    const token = ++requestToken.current;
-    setFetchError(null);
-    setError(null);
-    setFetching(true);
-    try {
-      const result = await fetcher();
-      if (token !== requestToken.current) {
-        return; // a newer request superseded this one
+  const runFetch = useCallback(
+    async (
+      fetcher: () => Promise<FetchPuzzleResult>,
+      targetDate: (result: FetchPuzzleResult & { ok: true }) => string | null,
+      reachError: string
+    ) => {
+      const token = ++requestToken.current;
+      setFetchError(null);
+      setError(null);
+      setFetching(true);
+      try {
+        const result = await fetcher();
+        if (token !== requestToken.current) {
+          return; // a newer request superseded this one
+        }
+        if (result.ok) {
+          applyResult(result, targetDate(result));
+        } else {
+          setFetchError(result.error);
+        }
+      } catch {
+        if (token === requestToken.current) {
+          setFetchError(reachError);
+        }
+      } finally {
+        if (token === requestToken.current) {
+          setFetching(false);
+        }
       }
-      if (result.ok) {
-        applyResult(result, targetDate(result));
-      } else {
-        setFetchError(result.error);
-      }
-    } catch {
-      if (token === requestToken.current) {
-        setFetchError(reachError);
-      }
-    } finally {
-      if (token === requestToken.current) {
-        setFetching(false);
-      }
-    }
-  }
+    },
+    [applyResult]
+  );
 
-  // Picking a date is the primary way to load a puzzle: it resolves to the
-  // sbsolver puzzle number server-side and scrapes automatically. The picked
-  // date is the save target.
-  function handleDateSelect(next: string) {
-    runFetch(
-      () => fetchPuzzleByDateAction(next),
-      () => next,
-      "Couldn't reach sbsolver. Try again."
-    );
-  }
+  // Picking a date is the primary way to load a puzzle. If that date already has
+  // a saved puzzle, switch to it directly; otherwise resolve it to the sbsolver
+  // puzzle number server-side and scrape it, with the picked date as the save
+  // target.
+  const handleDateSelect = useCallback(
+    (next: string) => {
+      if (dates.includes(next)) {
+        onSelectExisting(next);
+        return;
+      }
+      runFetch(
+        () => fetchPuzzleByDateAction(next),
+        () => next,
+        "Couldn't reach sbsolver. Try again."
+      );
+    },
+    [dates, onSelectExisting, runFetch]
+  );
 
   function handleFetch() {
     runFetch(
@@ -198,6 +232,15 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
       "Couldn't reach the puzzle. Check the URL and try again."
     );
   }
+
+  // When the parent drops us into the loader for a date with no saved puzzle,
+  // scrape it automatically, then clear the signal so re-selection re-fires.
+  useEffect(() => {
+    if (autoFetchDate) {
+      handleDateSelect(autoFetchDate);
+      onAutoFetchHandled();
+    }
+  }, [autoFetchDate, handleDateSelect, onAutoFetchHandled]);
 
   function handleLoad() {
     setError(null);
@@ -286,6 +329,8 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
                 <Label>Puzzle date</Label>
                 <div className="flex items-center gap-3">
                   <DatePicker
+                    disabledDates={datesWithData}
+                    enabledDateIndicator
                     maxDate={parseLocalDate(latestPuzzleDateISO())}
                     minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
                     onDateChange={(d) => {
@@ -304,7 +349,8 @@ export function SetupPanel({ date, onLoad, saving }: Props) {
                 </div>
                 <p className="text-muted-foreground text-xs">
                   Defaults to today. Pick any date back to May 9, 2018 to load
-                  that day&apos;s puzzle automatically.
+                  that day&apos;s puzzle automatically. Highlighted dates are
+                  already saved and open instantly.
                 </p>
                 {fetchError ? (
                   <p
