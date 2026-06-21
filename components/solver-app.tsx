@@ -26,6 +26,8 @@ export function SolverApp() {
     deletePuzzle,
     dates,
     datesReady,
+    datesError,
+    reloadDates,
     clearWords,
   } = usePuzzle();
   const [forceLoader, setForceLoader] = useState(false);
@@ -89,6 +91,36 @@ export function SolverApp() {
 
   const showLoader = !isLoading && (!(puzzle && derived) || forceLoader);
 
+  // The header date control: a sample badge, an error/retry when the date index
+  // failed to load, or the picker (disabled until the index is ready).
+  const renderHeaderDateControl = () => {
+    if (isSample) {
+      return (
+        <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-primary-foreground/80 text-xs">
+          Sample data
+        </span>
+      );
+    }
+    if (datesError) {
+      return (
+        <Button onClick={() => reloadDates()} size="sm" variant="outline">
+          Couldn&apos;t load dates — retry
+        </Button>
+      );
+    }
+    return (
+      <DatePicker
+        disabled={!datesReady}
+        disabledDates={disabledDates}
+        enabledDateIndicator
+        maxDate={parseLocalDate(latestPuzzleDateISO())}
+        minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
+        onDateChange={(d) => handleDateChange(toLocalISO(d))}
+        value={parseLocalDate(date)}
+      />
+    );
+  };
+
   const renderBody = () => {
     if (isLoading) {
       return (
@@ -119,9 +151,11 @@ export function SolverApp() {
             autoFetchDate={autoFetchDate}
             date={date}
             dates={dates}
+            datesError={datesError}
             datesReady={datesReady}
             onAutoFetchHandled={() => setAutoFetchDate(null)}
             onLoad={handleLoad}
+            onRetryDates={() => reloadDates()}
             onSelectExisting={handleDateChange}
             saving={saving}
           />
@@ -179,21 +213,7 @@ export function SolverApp() {
         </div>
 
         <div className="flex items-center gap-3">
-          {isSample ? (
-            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-primary-foreground/80 text-xs">
-              Sample data
-            </span>
-          ) : (
-            <DatePicker
-              disabled={!datesReady}
-              disabledDates={disabledDates}
-              enabledDateIndicator
-              maxDate={parseLocalDate(latestPuzzleDateISO())}
-              minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
-              onDateChange={(d) => handleDateChange(toLocalISO(d))}
-              value={parseLocalDate(date)}
-            />
-          )}
+          {renderHeaderDateControl()}
           {saving ? (
             <span className="text-muted-foreground text-xs">Saving…</span>
           ) : null}

@@ -4,11 +4,21 @@
 
 **Clean.**
 
-All findings reviewed through the shared date-index follow-up have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain in that changeset.
+All findings from the review passes have been addressed. No meaningful reuse, composition, consistency, effect, or slop concerns remain.
 
 Priority measures impact; the review categories identify the underlying design concern.
 
 ## Resolved findings
+
+### Resolved: Date-index failure left both pickers silently disabled
+
+**Area:** `hooks/use-puzzle.ts`, date-index SWR state; `components/solver-app.tsx` and `components/setup-panel.tsx`, disabled date pickers
+
+**Categories:** Codebase Consistency; React / Next.js Quality; Error Handling
+
+The hook exposed `datesReady` and correctly blocked routing until the authoritative index loaded, but discarded the request's error state. If `/api/puzzle/dates` failed during its initial load, both date pickers remained disabled without an explanation or recovery path.
+
+The hook now exposes the initial load failure and bound date-index mutator. Both date-picker surfaces render an explicit retry action on failure while continuing to use cached index data when a later revalidation fails.
 
 ### Resolved: An unavailable date index was treated as an authoritative empty list
 
