@@ -85,13 +85,13 @@ export function MatrixGrid({
                   title={isCenter ? "Center letter" : undefined}
                 >
                   <span className="inline-flex items-center gap-1.5">
+                    {letter}{" "}
                     {isCenter && (
                       <span
                         aria-hidden="true"
                         className="inline-block size-1.5 rounded-full bg-primary"
                       />
                     )}
-                    {letter}
                   </span>
                 </th>
                 {lengths.map((len) => (
@@ -134,7 +134,7 @@ export function MatrixGrid({
             aria-hidden="true"
             className="inline-block size-1.5 rounded-full bg-primary"
           />
-          Honey row = center letter{" "}
+          Center letter:
           <span className="font-mono font-semibold text-foreground">
             {centerLetter}
           </span>
