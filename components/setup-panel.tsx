@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { fetchPuzzleFromUrlAction } from "@/app/actions";
+import {
+  fetchPuzzleByDateAction,
+  fetchPuzzleFromUrlAction,
+} from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -9,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { parseLocalDate, SAMPLE_ID } from "@/lib/keys";
 import { parseHints, parseMatrix } from "@/lib/parse";
+import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import {
   SAMPLE_CENTER_LETTER,
   SAMPLE_HINTS,
@@ -122,6 +126,44 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
     }
   }, [matrixText]);
 
+  // Fill the editable fields from a successful scrape (shared by the date and
+  // URL paths). `scrapedDate` is the page's own date for the URL path; the date
+  // path already knows its target date, so it passes null.
+  function applyResult(
+    result: Extract<
+      Awaited<ReturnType<typeof fetchPuzzleByDateAction>>,
+      { ok: true }
+    >,
+    scrapedDate: string | null
+  ) {
+    setMatrixText(result.matrixText);
+    setHintsText(result.hintsText);
+    setFetchedDate(scrapedDate);
+    setFailedPrefixes(result.failedPrefixes);
+    setCenterLetter(result.centerLetter);
+  }
+
+  // Picking a date is the primary way to load a puzzle: resolve it to the
+  // sbsolver puzzle number server-side and scrape it automatically.
+  async function handleDateSelect(next: string) {
+    onDateChange(next);
+    setFetchError(null);
+    setError(null);
+    setFetching(true);
+    try {
+      const result = await fetchPuzzleByDateAction(next);
+      if (!result.ok) {
+        setFetchError(result.error);
+        return;
+      }
+      applyResult(result, null);
+    } catch {
+      setFetchError("Couldn't reach sbsolver. Try again.");
+    } finally {
+      setFetching(false);
+    }
+  }
+
   async function handleFetch() {
     setFetchError(null);
     setError(null);
@@ -132,22 +174,12 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
         setFetchError(result.error);
         return;
       }
-      setMatrixText(result.matrixText);
-      setHintsText(result.hintsText);
-      setFetchedDate(result.date);
-      setFailedPrefixes(result.failedPrefixes);
-      setCenterLetter(result.centerLetter);
+      applyResult(result, result.date);
     } catch {
       setFetchError("Couldn't reach the puzzle. Check the URL and try again.");
     } finally {
       setFetching(false);
     }
-  }
-
-  // The user manually picking a date overrides any scraped date.
-  function handleManualDate(next: string) {
-    setFetchedDate(null);
-    onDateChange(next);
   }
 
   function handleLoad() {
@@ -193,8 +225,8 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
             Load a puzzle
           </h2>
           <p className="max-w-md text-muted-foreground text-sm leading-relaxed">
-            Paste from sbsolver to track a real puzzle, or load sample data for
-            development.
+            Pick a date to load that day&apos;s puzzle from sbsolver, or load
+            sample data for development.
           </p>
         </div>
 
@@ -234,40 +266,28 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
           {mode === "date" ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="puzzle-url">Fetch from sbsolver URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    className="font-mono text-base md:text-sm"
-                    id="puzzle-url"
-                    inputMode="url"
-                    onChange={(e) => {
-                      setUrl(e.target.value);
-                      if (fetchError) {
-                        setFetchError(null);
-                      }
+                <Label>Puzzle date</Label>
+                <div className="flex items-center gap-3">
+                  <DatePicker
+                    maxDate={parseLocalDate(latestPuzzleDateISO())}
+                    minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
+                    onDateChange={(d) => {
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const day = String(d.getDate()).padStart(2, "0");
+                      handleDateSelect(`${y}-${m}-${day}`);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && url.trim() && !fetching) {
-                        e.preventDefault();
-                        handleFetch();
-                      }
-                    }}
-                    placeholder="https://www.sbsolver.com/nt/…"
-                    type="url"
-                    value={url}
+                    value={parseLocalDate(fetchedDate ?? date)}
                   />
-                  <Button
-                    disabled={fetching || url.trim().length === 0}
-                    onClick={handleFetch}
-                    type="button"
-                    variant="outline"
-                  >
-                    {fetching ? "Fetching…" : "Fetch"}
-                  </Button>
+                  {fetching ? (
+                    <span className="text-muted-foreground text-xs">
+                      Fetching…
+                    </span>
+                  ) : null}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Paste a puzzle URL to fill the grid and hints below
-                  automatically. You can still edit them before loading.
+                  Defaults to today. Pick any date back to May 9, 2018 to load
+                  that day&apos;s puzzle automatically.
                 </p>
                 {fetchError ? (
                   <p
@@ -277,13 +297,11 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
                     {fetchError}
                   </p>
                 ) : null}
-                {fetchedDate ? (
+                {fetchedDate && fetchedDate !== date ? (
                   <p className="rounded-md bg-primary/10 px-3 py-2 text-foreground text-xs">
                     Fetched the puzzle for{" "}
-                    <span className="font-semibold">{fetchedDate}</span>
-                    {fetchedDate === date
-                      ? "."
-                      : " — it will be saved under that date."}
+                    <span className="font-semibold">{fetchedDate}</span> — it
+                    will be saved under that date.
                   </p>
                 ) : null}
                 {failedPrefixes.length > 0 ? (
@@ -297,22 +315,48 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
                 ) : null}
               </div>
 
-              <div className="space-y-2">
-                <Label>Puzzle date</Label>
-                <DatePicker
-                  onDateChange={(d) => {
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, "0");
-                    const day = String(d.getDate()).padStart(2, "0");
-                    handleManualDate(`${y}-${m}-${day}`);
-                  }}
-                  value={parseLocalDate(fetchedDate ?? date)}
-                />
-
-                <p className="text-muted-foreground text-xs">
-                  Defaults to today. Change it to load a past day&apos;s puzzle.
-                </p>
-              </div>
+              <details className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <summary className="cursor-pointer font-medium text-muted-foreground text-sm">
+                  Paste a sbsolver URL instead
+                </summary>
+                <div className="mt-3 space-y-2">
+                  <Label htmlFor="puzzle-url">sbsolver URL</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      className="font-mono text-base md:text-sm"
+                      id="puzzle-url"
+                      inputMode="url"
+                      onChange={(e) => {
+                        setUrl(e.target.value);
+                        if (fetchError) {
+                          setFetchError(null);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && url.trim() && !fetching) {
+                          e.preventDefault();
+                          handleFetch();
+                        }
+                      }}
+                      placeholder="https://www.sbsolver.com/nt/…"
+                      type="url"
+                      value={url}
+                    />
+                    <Button
+                      disabled={fetching || url.trim().length === 0}
+                      onClick={handleFetch}
+                      type="button"
+                      variant="outline"
+                    >
+                      {fetching ? "Fetching…" : "Fetch"}
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Useful for a specific link. The grid and hints fill in
+                    below; you can still edit them before loading.
+                  </p>
+                </div>
+              </details>
 
               <div className="space-y-2">
                 <Label htmlFor="matrix">Grid matrix (tab-separated)</Label>
