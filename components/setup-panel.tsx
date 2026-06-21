@@ -186,7 +186,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
     (matrixText.trim().length > 0 && hintsText.trim().length > 0);
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="w-full">
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <div className="mb-6 space-y-1.5">
           <h2 className="font-semibold text-card-foreground text-lg">
