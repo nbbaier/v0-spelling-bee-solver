@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import useSWR from "swr";
 import {
   clearAllWordsAction,
+  clearWordsForSlotsAction,
   deletePuzzleAction,
   savePuzzleAction,
   setWordAction,
@@ -135,11 +136,14 @@ export function usePuzzle() {
     }
   }, [date, dates, mutate]);
 
-  // Clear all entered words for the current puzzle.
-  const clearAllWords = useCallback(() => {
-    mutate(
-      async (current) => {
-        await clearAllWordsAction(date);
+  // Clear entered words for the current puzzle. Pass a list of slot IDs to clear
+  // only those slots; omit it to clear every word.
+  const clearWords = useCallback(
+    (slotIds?: string[]) => {
+      const targetIds = slotIds ? new Set(slotIds) : null;
+      const clearScoped = (
+        current: PuzzleResponse | undefined
+      ): PuzzleResponse => {
         if (!current?.puzzle) {
           return current as PuzzleResponse;
         }
@@ -147,27 +151,29 @@ export function usePuzzle() {
           ...current,
           puzzle: {
             ...current.puzzle,
-            hints: current.puzzle.hints.map((s) => ({ ...s, word: null })),
+            hints: current.puzzle.hints.map((s) =>
+              targetIds && !targetIds.has(s.id) ? s : { ...s, word: null }
+            ),
           },
         };
-      },
-      {
-        optimisticData: (current) => {
-          if (!current?.puzzle) {
-            return current as PuzzleResponse;
+      };
+      mutate(
+        async (current) => {
+          if (targetIds && slotIds) {
+            await clearWordsForSlotsAction(date, slotIds);
+          } else {
+            await clearAllWordsAction(date);
           }
-          return {
-            ...current,
-            puzzle: {
-              ...current.puzzle,
-              hints: current.puzzle.hints.map((s) => ({ ...s, word: null })),
-            },
-          };
+          return clearScoped(current);
         },
-        revalidate: false,
-      }
-    );
-  }, [date, mutate]);
+        {
+          optimisticData: clearScoped,
+          revalidate: false,
+        }
+      );
+    },
+    [date, mutate]
+  );
 
   const isSample = isSampleId(date);
   const loadSample = useCallback(() => setDate(SAMPLE_ID), []);
@@ -184,6 +190,6 @@ export function usePuzzle() {
     savePuzzle,
     setWord,
     deletePuzzle,
-    clearAllWords,
+    clearWords,
   };
 }
