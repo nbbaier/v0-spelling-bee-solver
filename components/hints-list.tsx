@@ -1,6 +1,6 @@
 "use client";
-
-import { EyeOff, Trash2, X } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, Delete02Icon, ViewOffIcon } from "@hugeicons/core-free-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { clearAllWordsAction, clearWordsForSlotsAction } from "@/app/actions";
 import {
@@ -125,7 +125,7 @@ function SlotInput({
             onClick={handleDelete}
             type="button"
           >
-            <X size={14} />
+            <HugeiconsIcon icon={Cancel01Icon} size={14} />
           </button>
         </div>
       )}
@@ -254,7 +254,7 @@ export function HintsList({
             size="sm"
             variant="ghost"
           >
-            <Trash2 size={13} />
+            <HugeiconsIcon icon={Delete02Icon} size={13} />
             Clear all
           </Button>
           <Toggle
@@ -264,7 +264,7 @@ export function HintsList({
             pressed={hideCompleted}
             size="sm"
           >
-            <EyeOff size={13} />
+            <HugeiconsIcon icon={ViewOffIcon} size={13} />
             Hide completed
           </Toggle>
         </div>
