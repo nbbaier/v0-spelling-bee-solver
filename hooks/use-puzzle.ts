@@ -11,7 +11,10 @@ import {
 import { isSampleId, SAMPLE_ID, todayISO } from "@/lib/keys";
 import type { HintSlot, MatrixData, Puzzle } from "@/lib/types";
 
-type PuzzleResponse = { puzzle: Puzzle | null; dates: string[] };
+interface PuzzleResponse {
+  dates: string[];
+  puzzle: Puzzle | null;
+}
 
 const fetcher = async (url: string): Promise<PuzzleResponse> => {
   const res = await fetch(url);
@@ -64,7 +67,7 @@ export function usePuzzle() {
         setSaving(false);
       }
     },
-    [date, dates, mutate, setDate]
+    [date, dates, mutate]
   );
 
   // Record or clear a found word, with optimistic UI.
@@ -167,7 +170,7 @@ export function usePuzzle() {
   }, [date, mutate]);
 
   const isSample = isSampleId(date);
-  const loadSample = useCallback(() => setDate(SAMPLE_ID), [setDate]);
+  const loadSample = useCallback(() => setDate(SAMPLE_ID), []);
 
   return {
     date,

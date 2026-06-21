@@ -18,12 +18,25 @@ const HINTS_PLACEHOLDER = "DON x1  DOO x1  DRO x4  NOD x2";
 
 type Mode = "date" | "sample";
 
-type Props = {
+interface Props {
   date: string;
   onDateChange: (date: string) => void;
   onLoad: (matrix: MatrixData, hints: HintSlot[], id: string) => void;
   saving?: boolean;
-};
+}
+
+// Parse an ISO "YYYY-MM-DD" string into a local-time Date.
+function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function loadButtonLabel(saving: boolean, mode: Mode): string {
+  if (saving) {
+    return "Saving…";
+  }
+  return mode === "sample" ? "Load sample data" : "Load puzzle";
+}
 
 export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
   const [mode, setMode] = useState<Mode>("date");
@@ -216,11 +229,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
                     const day = String(d.getDate()).padStart(2, "0");
                     handleManualDate(`${y}-${m}-${day}`);
                   }}
-                  value={(() => {
-                    const s = fetchedDate ?? date;
-                    const [y, m, d] = s.split("-").map(Number);
-                    return new Date(y, m - 1, d);
-                  })()}
+                  value={isoToDate(fetchedDate ?? date)}
                 />
 
                 <p className="text-muted-foreground text-xs">
@@ -289,11 +298,7 @@ export function SetupPanel({ date, onDateChange, onLoad, saving }: Props) {
             disabled={!canSubmit || saving}
             onClick={handleLoad}
           >
-            {saving
-              ? "Saving…"
-              : mode === "sample"
-                ? "Load sample data"
-                : "Load puzzle"}
+            {loadButtonLabel(Boolean(saving), mode)}
           </Button>
         </div>
       </div>

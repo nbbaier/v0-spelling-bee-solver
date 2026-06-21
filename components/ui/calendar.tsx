@@ -5,7 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react";
-import * as React from "react";
+import { type ComponentProps, useEffect, useRef } from "react";
 import {
   type DayButton,
   DayPicker,
@@ -25,8 +25,8 @@ function Calendar({
   formatters,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+}: ComponentProps<typeof DayPicker> & {
+  buttonVariant?: ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
 
@@ -130,6 +130,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
+        // biome-ignore lint/correctness/noNestedComponentDefinitions: react-day-picker's components API expects inline render functions
         Root: ({ className, rootRef, ...props }) => (
           <div
             className={cn(className)}
@@ -138,6 +139,7 @@ function Calendar({
             {...props}
           />
         ),
+        // biome-ignore lint/correctness/noNestedComponentDefinitions: react-day-picker's components API expects inline render functions
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
@@ -158,9 +160,11 @@ function Calendar({
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
           );
         },
+        // biome-ignore lint/correctness/noNestedComponentDefinitions: react-day-picker's components API expects inline render functions
         DayButton: ({ ...props }) => (
           <CalendarDayButton locale={locale} {...props} />
         ),
+        // biome-ignore lint/correctness/noNestedComponentDefinitions: react-day-picker's components API expects inline render functions
         WeekNumber: ({ children, ...props }) => (
           <td {...props}>
             <div className="flex size-(--cell-size) items-center justify-center text-center">
@@ -188,11 +192,11 @@ function CalendarDayButton({
   modifiers,
   locale,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
+}: ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
   const defaultClassNames = getDefaultClassNames();
 
-  const ref = React.useRef<HTMLButtonElement>(null);
-  React.useEffect(() => {
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
     if (modifiers.focused) {
       ref.current?.focus();
     }

@@ -1,7 +1,13 @@
 "use server";
 
 import { isValidPuzzleId } from "@/lib/keys";
-import * as store from "@/lib/puzzle-store";
+import {
+  clearAllWords,
+  clearWordsForSlots,
+  deletePuzzle,
+  savePuzzle,
+  setWord,
+} from "@/lib/puzzle-store";
 import { scrapePuzzle } from "@/lib/sbsolver";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
@@ -40,7 +46,7 @@ export async function savePuzzleAction(
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
   }
-  await store.savePuzzle(date, matrix, hints);
+  await savePuzzle(date, matrix, hints);
 }
 
 export async function setWordAction(
@@ -51,21 +57,21 @@ export async function setWordAction(
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
   }
-  await store.setWord(date, slotId, word);
+  await setWord(date, slotId, word);
 }
 
 export async function deletePuzzleAction(date: string) {
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
   }
-  await store.deletePuzzle(date);
+  await deletePuzzle(date);
 }
 
 export async function clearAllWordsAction(date: string) {
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
   }
-  await store.clearAllWords(date);
+  await clearAllWords(date);
 }
 
 export async function clearWordsForSlotsAction(
@@ -75,5 +81,5 @@ export async function clearWordsForSlotsAction(
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
   }
-  await store.clearWordsForSlots(date, slotIds);
+  await clearWordsForSlots(date, slotIds);
 }

@@ -17,7 +17,6 @@ export function SolverApp() {
     date,
     setDate,
     isSample,
-    loadSample,
     puzzle,
     isLoading,
     saving,
@@ -56,6 +55,73 @@ export function SolverApp() {
   );
 
   const showLoader = !isLoading && (!(puzzle && derived) || forceLoader);
+
+  const renderBody = () => {
+    if (isLoading) {
+      return (
+        <div className="py-20 text-center text-muted-foreground text-sm">
+          Loading puzzle…
+        </div>
+      );
+    }
+
+    if (showLoader) {
+      return (
+        <div className="space-y-4">
+          {puzzle && forceLoader ? (
+            <div className="mx-auto flex w-full max-w-2xl items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+              <span className="text-muted-foreground">
+                A puzzle already exists for this date. Loading will replace it.
+              </span>
+              <Button
+                onClick={() => setForceLoader(false)}
+                size="sm"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : null}
+          <SetupPanel
+            date={date}
+            onDateChange={handleDateChange}
+            onLoad={handleLoad}
+            saving={saving}
+          />
+        </div>
+      );
+    }
+
+    if (puzzle && derived) {
+      return (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="space-y-6 lg:col-span-3">
+            <ProgressSummary derived={derived} />
+            <MatrixGrid derived={derived} puzzle={puzzle} />
+          </div>
+          <div className="space-y-4 lg:col-span-2">
+            <HintsList
+              allowedLetters={puzzle.letters}
+              date={date}
+              hints={puzzle.hints}
+              onClearAllWords={clearAllWords}
+              onSetWord={setWord}
+            />
+            <Button
+              className="text-muted-foreground"
+              onClick={deletePuzzle}
+              size="sm"
+              variant="ghost"
+            >
+              Delete this puzzle
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <main className="mx-auto min-h-svh w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
@@ -98,58 +164,7 @@ export function SolverApp() {
         </div>
       </header>
 
-      {isLoading ? (
-        <div className="py-20 text-center text-muted-foreground text-sm">
-          Loading puzzle…
-        </div>
-      ) : showLoader ? (
-        <div className="space-y-4">
-          {puzzle && forceLoader ? (
-            <div className="mx-auto flex w-full max-w-2xl items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
-              <span className="text-muted-foreground">
-                A puzzle already exists for this date. Loading will replace it.
-              </span>
-              <Button
-                onClick={() => setForceLoader(false)}
-                size="sm"
-                variant="ghost"
-              >
-                Cancel
-              </Button>
-            </div>
-          ) : null}
-          <SetupPanel
-            date={date}
-            onDateChange={handleDateChange}
-            onLoad={handleLoad}
-            saving={saving}
-          />
-        </div>
-      ) : derived ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
-            <ProgressSummary derived={derived} />
-            <MatrixGrid derived={derived} puzzle={puzzle!} />
-          </div>
-          <div className="space-y-4 lg:col-span-2">
-            <HintsList
-              allowedLetters={puzzle!.letters}
-              date={date}
-              hints={puzzle!.hints}
-              onClearAllWords={clearAllWords}
-              onSetWord={setWord}
-            />
-            <Button
-              className="text-muted-foreground"
-              onClick={deletePuzzle}
-              size="sm"
-              variant="ghost"
-            >
-              Delete this puzzle
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {renderBody()}
     </main>
   );
 }

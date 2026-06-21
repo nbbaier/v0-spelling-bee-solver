@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -30,10 +30,10 @@ export function DatePicker({
   disabledDates = [],
   enabledDateIndicator = false,
 }: DatePickerProps) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
 
   // Create a set of date strings for O(1) lookup
-  const enabledDateSet = React.useMemo(() => {
+  const enabledDateSet = useMemo(() => {
     if (!(enabledDateIndicator && disabledDates)) {
       return new Set<string>();
     }

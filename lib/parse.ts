@@ -1,12 +1,66 @@
 import type { HintSlot } from "./types";
 
 const LETTER_RE = /^[A-Za-z]$/;
+const NEWLINE_RE = /\r?\n/;
+const TRAILING_WS_RE = /\s+$/;
+const INT_RE = /^\d+$/;
+const HINT_RE = /([A-Za-z]{2,})\s*[x×*]\s*(\d+)/g;
 
-export type MatrixParseResult = {
-  letters: string[];
-  lengths: number[];
+export interface MatrixParseResult {
   grid: Record<string, Record<number, number>>;
-};
+  lengths: number[];
+  letters: string[];
+}
+
+/** Splits raw input into trimmed, non-empty lines. */
+function toLines(raw: string): string[] {
+  return raw
+    .split(NEWLINE_RE)
+    .map((l) => l.replace(TRAILING_WS_RE, ""))
+    .filter((l) => l.trim().length > 0);
+}
+
+/** Finds the first row containing an integer cell (the word-length header). */
+function findHeader(lines: string[]): { index: number; cells: string[] } {
+  for (let i = 0; i < lines.length; i++) {
+    const cells = lines[i].split("\t").map((c) => c.trim());
+    if (cells.some((c) => INT_RE.test(c))) {
+      return { index: i, cells };
+    }
+  }
+  return { index: -1, cells: [] };
+}
+
+/** Adds a single data row's counts into the grid, if it starts with a letter. */
+function addRow(
+  line: string,
+  columnLengths: (number | null)[],
+  grid: Record<string, Record<number, number>>,
+  letters: string[]
+): void {
+  const cells = line.split("\t").map((c) => c.trim());
+  const label = cells[0];
+  if (!LETTER_RE.test(label)) {
+    return; // skip totals / blank rows
+  }
+
+  const letter = label.toUpperCase();
+  if (!grid[letter]) {
+    grid[letter] = {};
+    letters.push(letter);
+  }
+
+  for (let c = 0; c < cells.length; c++) {
+    const len = columnLengths[c];
+    if (len == null) {
+      continue;
+    }
+    const value = cells[c] === "" ? 0 : Number.parseInt(cells[c], 10);
+    if (!Number.isNaN(value) && value > 0) {
+      grid[letter][len] = (grid[letter][len] ?? 0) + value;
+    }
+  }
+}
 
 /**
  * Parses the tab-separated grid copied from sbsolver.
@@ -25,10 +79,7 @@ export type MatrixParseResult = {
  *   stored here.
  */
 export function parseMatrix(raw: string): MatrixParseResult {
-  const lines = raw
-    .split(/\r?\n/)
-    .map((l) => l.replace(/\s+$/, ""))
-    .filter((l) => l.trim().length > 0);
+  const lines = toLines(raw);
 
   if (lines.length === 0) {
     throw new Error(
@@ -36,27 +87,16 @@ export function parseMatrix(raw: string): MatrixParseResult {
     );
   }
 
-  // Find the header row: the first row containing at least one integer cell.
-  let headerIndex = -1;
-  let headerCells: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const cells = lines[i].split("\t").map((c) => c.trim());
-    if (cells.some((c) => /^\d+$/.test(c))) {
-      headerIndex = i;
-      headerCells = cells;
-      break;
-    }
-  }
-
-  if (headerIndex === -1) {
+  const header = findHeader(lines);
+  if (header.index === -1) {
     throw new Error(
       "Could not find a row of word lengths. Make sure cells are tab-separated."
     );
   }
 
   // Map each column index to a word length (or null for label/total columns).
-  const columnLengths: (number | null)[] = headerCells.map((c) =>
-    /^\d+$/.test(c) ? Number.parseInt(c, 10) : null
+  const columnLengths: (number | null)[] = header.cells.map((c) =>
+    INT_RE.test(c) ? Number.parseInt(c, 10) : null
   );
   const lengths = columnLengths.filter((n): n is number => n !== null);
   // De-dupe and sort ascending.
@@ -65,29 +105,8 @@ export function parseMatrix(raw: string): MatrixParseResult {
   const letters: string[] = [];
   const grid: Record<string, Record<number, number>> = {};
 
-  for (let i = headerIndex + 1; i < lines.length; i++) {
-    const cells = lines[i].split("\t").map((c) => c.trim());
-    const label = cells[0];
-    if (!LETTER_RE.test(label)) {
-      continue; // skip totals / blank rows
-    }
-
-    const letter = label.toUpperCase();
-    if (!grid[letter]) {
-      grid[letter] = {};
-      letters.push(letter);
-    }
-
-    for (let c = 0; c < cells.length; c++) {
-      const len = columnLengths[c];
-      if (len == null) {
-        continue;
-      }
-      const value = cells[c] === "" ? 0 : Number.parseInt(cells[c], 10);
-      if (!Number.isNaN(value) && value > 0) {
-        grid[letter][len] = (grid[letter][len] ?? 0) + value;
-      }
-    }
+  for (let i = header.index + 1; i < lines.length; i++) {
+    addRow(lines[i], columnLengths, grid, letters);
   }
 
   if (letters.length === 0) {
@@ -107,16 +126,18 @@ export function parseMatrix(raw: string): MatrixParseResult {
  */
 export function parseHints(raw: string): HintSlot[] {
   const slots: HintSlot[] = [];
-  const re = /([A-Za-z]{2,})\s*[x×*]\s*(\d+)/g;
-  let match: RegExpExecArray | null;
   let counter = 0;
 
-  while ((match = re.exec(raw)) !== null) {
+  HINT_RE.lastIndex = 0;
+  let match = HINT_RE.exec(raw);
+  while (match !== null) {
     const prefix = match[1].toUpperCase();
     const count = Number.parseInt(match[2], 10);
     for (let i = 0; i < count; i++) {
-      slots.push({ id: `${prefix}-${counter++}`, prefix, word: null });
+      slots.push({ id: `${prefix}-${counter}`, prefix, word: null });
+      counter++;
     }
+    match = HINT_RE.exec(raw);
   }
 
   if (slots.length === 0) {

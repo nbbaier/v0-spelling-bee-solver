@@ -1,17 +1,17 @@
 import type { Puzzle } from "./types";
 
-export type Derived = {
+export interface Derived {
   // found[letter][length] = number of words entered for that cell
   found: Record<string, Record<number, number>>;
-  totalWords: number;
   foundWords: number;
+  lengthFound: Record<number, number>;
   // per-length progress
   lengthTotals: Record<number, number>;
-  lengthFound: Record<number, number>;
+  letterFound: Record<string, number>;
   // per-letter progress
   letterTotals: Record<string, number>;
-  letterFound: Record<string, number>;
-};
+  totalWords: number;
+}
 
 export function derive(puzzle: Puzzle): Derived {
   const found: Record<string, Record<number, number>> = {};

@@ -14,14 +14,19 @@ import { parse } from "node-html-parser";
 const ALLOWED_HOST = "www.sbsolver.com";
 const POOL_SIZE = 5;
 
-export type ScrapeResult = {
-  matrixText: string;
-  hintsText: string;
+const PUZZLE_PATH_RE = /^\/(?:nt|n)\/([A-Za-z0-9]+)/;
+const PREFIX_HREF_RE = /\/nt\/[A-Za-z]+\/([a-z]{2})(?:[#?].*)?$/;
+const THREE_LETTER_RE = /[A-Za-z]{2,}\s*[x×*]\s*\d+/;
+const TITLE_DATE_RE = /([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/;
+
+export interface ScrapeResult {
   // ISO YYYY-MM-DD scraped from the page, or null if it couldn't be found.
   date: string | null;
   // 2-letter prefixes whose 3-letter page failed to fetch/parse.
   failedPrefixes: string[];
-};
+  hintsText: string;
+  matrixText: string;
+}
 
 const MONTHS: Record<string, number> = {
   january: 1,
@@ -63,7 +68,7 @@ function validateUrl(raw: string): URL {
   // Accept both the "/nt/<id>" (2-letter tally) and "/n/<id>" (Basic) puzzle
   // pages. The Basic page has the grid but no 2-letter tally to crawl, so
   // normalize either form to "/nt/<id>" — the page that carries the hints.
-  const m = u.pathname.match(/^\/(?:nt|n)\/([A-Za-z0-9]+)/);
+  const m = u.pathname.match(PUZZLE_PATH_RE);
   if (!m) {
     throw new Error(
       "That's not a sbsolver puzzle page (expected a /nt/… or /n/… URL)."
@@ -118,7 +123,7 @@ function parsePrefixLinks(root: Root): { prefix: string; url: string }[] {
     if (!href) {
       continue;
     }
-    const m = href.match(/\/nt\/[A-Za-z]+\/([a-z]{2})(?:[#?].*)?$/);
+    const m = href.match(PREFIX_HREF_RE);
     if (!m) {
       continue;
     }
@@ -138,7 +143,7 @@ function parseThreeLetterCells(root: Root): string[] {
   return root
     .querySelectorAll("td.bee-three")
     .map((td) => clean(td.text))
-    .filter((t) => /[A-Za-z]{2,}\s*[x×*]\s*\d+/.test(t));
+    .filter((t) => THREE_LETTER_RE.test(t));
 }
 
 function parseDate(root: Root): string | null {
@@ -149,7 +154,7 @@ function parseDate(root: Root): string | null {
   // the page-generation timestamp (i.e. today), not the puzzle's date — it only
   // matched by coincidence when fetching the current day's puzzle.
   const title = root.querySelector("title")?.text ?? "";
-  const dm = title.match(/([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/);
+  const dm = title.match(TITLE_DATE_RE);
   if (dm) {
     const month = MONTHS[dm[1].toLowerCase()];
     if (month) {

@@ -38,7 +38,6 @@ function SlotInput({
   onCommit: (word: string | null) => void;
 }) {
   const [value, setValue] = useState(slot.word ?? "");
-  const [showDelete, setShowDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Keep local state in sync if the puzzle is reset/loaded externally.
@@ -78,7 +77,6 @@ function SlotInput({
     setValue("");
     setError(null);
     onCommit(null);
-    setShowDelete(false);
   }
 
   function handleChange(raw: string) {
@@ -90,11 +88,7 @@ function SlotInput({
   }
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => filled && setShowDelete(true)}
-      onMouseLeave={() => setShowDelete(false)}
-    >
+    <div className="group relative">
       <Input
         aria-invalid={Boolean(error)}
         aria-label={`${slot.prefix} word`}
@@ -115,7 +109,7 @@ function SlotInput({
             e.currentTarget.blur();
           }
         }}
-        placeholder={slot.prefix.toLowerCase() + "…"}
+        placeholder={`${slot.prefix.toLowerCase()}…`}
         spellCheck={false}
         value={value}
       />
@@ -125,16 +119,14 @@ function SlotInput({
           <span className="font-medium text-muted-foreground text-xs">
             {value.length}
           </span>
-          {showDelete && (
-            <button
-              aria-label="Delete word"
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-destructive transition-colors hover:bg-destructive/20"
-              onClick={handleDelete}
-              type="button"
-            >
-              <X size={14} />
-            </button>
-          )}
+          <button
+            aria-label="Delete word"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-destructive opacity-0 transition-[opacity,colors] hover:bg-destructive/20 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100"
+            onClick={handleDelete}
+            type="button"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>
@@ -211,7 +203,7 @@ export function HintsList({
       return;
     }
 
-    const prefix = trimmed.substring(0, 3);
+    const prefix = trimmed.slice(0, 3);
     const group = groups.find(([p]) => p === prefix);
     if (!group) {
       setGlobalError(`No prefix "${prefix}" in this puzzle`);
@@ -322,6 +314,7 @@ export function HintsList({
                 : "bg-muted text-muted-foreground hover:bg-muted/70"
             )}
             onClick={() => setLetterFilter(null)}
+            type="button"
           >
             All
           </button>
@@ -336,6 +329,7 @@ export function HintsList({
               )}
               key={l}
               onClick={() => setLetterFilter(letterFilter === l ? null : l)}
+              type="button"
             >
               {l}
             </button>
