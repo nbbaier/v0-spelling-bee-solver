@@ -1,55 +1,90 @@
 # Current Changes Review — 2026-06-21
 
-## Verdict
+## Current verdict
 
 **Needs cleanup.**
 
+The first review's four findings have been addressed. The follow-up review found one important cache-boundary issue and two smaller correctness issues that remain.
+
 Priority measures impact; the review categories identify the underlying design concern.
 
-## Findings
+## Resolved findings
 
-### P1: Date selection loses the fetched result
+### Resolved: Date selection lost the fetched result
 
 **Area:** `components/setup-panel.tsx`, `handleDateSelect`
 
 **Categories:** Composition and Boundaries; React / Next.js Quality
 
-`onDateChange(next)` changes the parent SWR key before scraping finishes. `SolverApp` enters its loading state and unmounts `SetupPanel`, so the completed request updates an unmounted component. When the form remounts, its fields are blank.
+The original implementation changed the parent SWR key before scraping finished, which unmounted `SetupPanel` and discarded the result.
 
-The existing local `fetchedDate` state was explicitly designed to avoid changing the parent key before Load. Keep the selected date local through the fetch, apply it to the parent when the user loads the puzzle, and prevent or ignore overlapping requests.
+The selected date and fetched fields now remain local until Load. A monotonic request token also prevents a slower, superseded request from overwriting a newer result.
 
-### P2: Server-side date validation accepts impossible dates
+### Resolved: Server-side date validation accepted impossible dates
 
 **Area:** `lib/puzzle-date.ts`, `isPuzzleDateInRange`
 
 **Categories:** Codebase Consistency; Composition and Boundaries
 
-The range check compares strings without first proving that the input is a real calendar date. For example, `2019-99-99` passes the lexical bounds, after which `Date.UTC` normalizes it to a date in 2027 and generates the wrong puzzle URL.
+The original lexical range check accepted values such as `2019-99-99`, which `Date.UTC` normalized into a different date.
 
-The server action is the trust boundary. Add strict `YYYY-MM-DD` parsing with a calendar round-trip check before applying the range comparison. No robust existing date validator was found; `lib/keys.ts` currently checks only the string shape.
+The implementation now requires strict `YYYY-MM-DD` syntax and round-trips the parsed components to prove that the input is a real calendar date before applying the range check.
 
-### P3: Fetch actions duplicate the scrape/result boundary
+### Resolved: Fetch actions duplicated the scrape/result boundary
 
-**Area:** `app/actions.ts`, `fetchPuzzleFromUrlAction` and `fetchPuzzleByDateAction`
+**Area:** `app/actions.ts`, `fetchPuzzle`
 
 **Categories:** Reuse Existing Code; Minimality; Helper Slop
 
-The two actions repeat the same `try`/`catch`, scrape call, success mapping, and error mapping.
+The URL and date actions originally repeated the same scrape, success mapping, and error mapping.
 
-Keep one internal fetch implementation. The date action should validate the date, construct the numbered URL, and delegate to that shared implementation.
+Both actions now delegate to one internal `fetchPuzzle` implementation.
 
-### P3: Unused inverse helper and comment-heavy proof
+### Resolved: Unused inverse helper and comment-heavy proof
 
-**Area:** `lib/puzzle-date.ts`, module header and `dateForPuzzleNumber`
+**Area:** `lib/puzzle-date.ts`
 
 **Categories:** Helper Slop; Comment Slop; Minimality
 
-`dateForPuzzleNumber` has no call sites, while a long module comment carries the evidence for the mapping's correctness.
+The unused `dateForPuzzleNumber` export has been removed, and the module commentary has been reduced.
 
-Delete the unused inverse unless it gains a real consumer, and trim the verification prose. Focused tests would provide stronger evidence if test infrastructure is introduced.
+## Remaining findings
+
+### P1: Saving a fetched date mutates the previous SWR key
+
+**Area:** `hooks/use-puzzle.ts`, `savePuzzle`
+
+**Categories:** Composition and Boundaries; React / Next.js Quality
+
+When the fetched target date differs from the active date, `savePuzzle` calls `setDate(targetId)` and then immediately calls the `mutate` function bound by `useSWR`. The state update does not update SWR's key ref before that immediate mutation, so the optimistic and final results are written to the previous date's cache entry.
+
+Meanwhile, changing the date starts a request for the target key. That request can finish before `savePuzzleAction`, leaving the target view empty even though the save later succeeds, while the previous cache entry contains the target puzzle.
+
+For cross-date saves, save first and then switch and revalidate, or use SWR's global mutator with the target key explicitly. Keep the bound mutation path for same-date saves.
+
+### P2: The date route does not verify the scraped page date
+
+**Area:** `app/actions.ts`, `fetchPuzzleByDateAction`; `components/setup-panel.tsx`, `handleDateSelect`
+
+**Categories:** Codebase Consistency; Composition and Boundaries
+
+The date action converts the requested date to a numeric sbsolver URL, but the client uses the requested date as the save target without checking the date parsed from the resulting page. A numbering gap, redirect, or upstream change could therefore store one day's puzzle under another date.
+
+The URL flow already treats the scraped `result.date` as authoritative. Have `fetchPuzzleByDateAction` reject a successful scrape whose parsed date does not match `dateIso`, then use the verified result date as the save target.
+
+### P2: Previous puzzle data remains loadable during a replacement fetch
+
+**Area:** `components/setup-panel.tsx`, Load button
+
+**Categories:** React / Next.js Quality; Minimality
+
+Starting another date or URL fetch leaves the previous fields and target active while the Load button remains enabled. The user can save that previous puzzle while the replacement request is pending.
+
+Reuse the existing `fetching` state in the real-puzzle Load button's disabled condition.
 
 ## Validation
 
 - `pnpm exec ultracite check` passed.
 - `pnpm exec tsc --noEmit` passed.
+- `pnpm build` passed.
 - No automated tests were found in the repository.
