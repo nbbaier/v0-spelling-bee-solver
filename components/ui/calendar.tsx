@@ -1,6 +1,10 @@
 "use client";
+import {
+  ArrowDown01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { type ComponentProps, useEffect, useRef } from "react";
 import {
   type DayButton,
@@ -139,18 +143,30 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <HugeiconsIcon icon={ArrowLeft01Icon} className={cn("size-4", className)} {...props} />
+              <HugeiconsIcon
+                className={cn("size-4", className)}
+                icon={ArrowLeft01Icon}
+                {...props}
+              />
             );
           }
 
           if (orientation === "right") {
             return (
-              <HugeiconsIcon icon={ArrowRight01Icon} className={cn("size-4", className)} {...props} />
+              <HugeiconsIcon
+                className={cn("size-4", className)}
+                icon={ArrowRight01Icon}
+                {...props}
+              />
             );
           }
 
           return (
-            <HugeiconsIcon icon={ArrowDown01Icon} className={cn("size-4", className)} {...props} />
+            <HugeiconsIcon
+              className={cn("size-4", className)}
+              icon={ArrowDown01Icon}
+              {...props}
+            />
           );
         },
         // biome-ignore lint/correctness/noNestedComponentDefinitions: react-day-picker's components API expects inline render functions
