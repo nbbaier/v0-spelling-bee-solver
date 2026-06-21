@@ -15,7 +15,9 @@ const ALLOWED_HOST = "www.sbsolver.com";
 const POOL_SIZE = 5;
 
 const PUZZLE_PATH_RE = /^\/(?:nt|n)\/([A-Za-z0-9]+)/;
-const PREFIX_HREF_RE = /\/nt\/[A-Za-z]+\/([a-z]{2})(?:[#?].*)?$/;
+// sbsolver prefix links now carry an optional puzzle-number segment, e.g.
+// "/nt/Rdginow/2965/do#3ltr"; older pages used "/nt/Rdginow/do". Accept both.
+const PREFIX_HREF_RE = /\/nt\/[A-Za-z]+(?:\/\d+)?\/([a-z]{2})(?:[#?].*)?$/;
 const THREE_LETTER_RE = /[A-Za-z]{2,}\s*[x×*]\s*\d+/;
 const TITLE_DATE_RE = /([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/;
 // "center letter R" — the alt text on the hive's yellow hexagon.

@@ -1,6 +1,7 @@
 "use server";
 
 import { isValidPuzzleId } from "@/lib/keys";
+import { isPuzzleDateInRange, puzzleNumberForDate } from "@/lib/puzzle-date";
 import {
   clearAllWords,
   clearWordsForSlots,
@@ -24,9 +25,7 @@ export type FetchPuzzleResult =
     }
   | { ok: false; error: string };
 
-export async function fetchPuzzleFromUrlAction(
-  url: string
-): Promise<FetchPuzzleResult> {
+async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
   try {
     const { matrixText, hintsText, date, centerLetter, failedPrefixes } =
       await scrapePuzzle(url);
@@ -44,6 +43,38 @@ export async function fetchPuzzleFromUrlAction(
       error: e instanceof Error ? e.message : "Could not fetch that puzzle.",
     };
   }
+}
+
+export async function fetchPuzzleFromUrlAction(
+  url: string
+): Promise<FetchPuzzleResult> {
+  return await fetchPuzzle(url);
+}
+
+export async function fetchPuzzleByDateAction(
+  dateIso: string
+): Promise<FetchPuzzleResult> {
+  if (!isPuzzleDateInRange(dateIso)) {
+    return { ok: false, error: "No puzzle is available for that date." };
+  }
+  // sbsolver accepts the numeric puzzle id directly (/nt/<number>), so the date
+  // resolves to a URL with no extra lookup. See lib/puzzle-date.ts.
+  const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(dateIso)}`;
+  const result = await fetchPuzzle(url);
+  // The date→number mapping assumes contiguous daily numbering; a gap, redirect,
+  // or upstream change could resolve to a different day. The page states its own
+  // date, so only accept a scrape whose date matches the request — and treat a
+  // missing date (markup we couldn't read) as a verification failure too, rather
+  // than silently storing one day's puzzle under another date.
+  if (result.ok && result.date !== dateIso) {
+    return {
+      ok: false,
+      error: result.date
+        ? `That date resolved to the puzzle for ${result.date}. sbsolver's numbering may have shifted — try the URL option.`
+        : "Couldn't confirm the puzzle's date on that page — try the URL option.",
+    };
+  }
+  return result;
 }
 
 export async function savePuzzleAction(
