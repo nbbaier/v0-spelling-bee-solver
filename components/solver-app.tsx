@@ -24,7 +24,7 @@ export function SolverApp() {
     setWord,
     deletePuzzle,
     dates,
-    clearAllWords,
+    clearWords,
   } = usePuzzle();
   const [forceLoader, setForceLoader] = useState(false);
 
@@ -127,9 +127,8 @@ export function SolverApp() {
               allowedLetters={puzzle.letters}
               availableLengthsByLetter={availableLengthsByLetter}
               centerLetter={puzzle.centerLetter}
-              date={date}
               hints={puzzle.hints}
-              onClearAllWords={clearAllWords}
+              onClearWords={clearWords}
               onSetWord={setWord}
             />
             <Button

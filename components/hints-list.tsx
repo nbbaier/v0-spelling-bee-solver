@@ -6,7 +6,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { clearAllWordsAction, clearWordsForSlotsAction } from "@/app/actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -151,8 +150,7 @@ export function HintsList({
   availableLengthsByLetter,
   centerLetter,
   onSetWord,
-  date,
-  onClearAllWords,
+  onClearWords,
 }: {
   hints: HintSlot[];
   allowedLetters: string[];
@@ -162,15 +160,14 @@ export function HintsList({
   availableLengthsByLetter: Record<string, number[]>;
   centerLetter: string | null;
   onSetWord: (slotId: string, word: string | null) => void;
-  date: string;
-  onClearAllWords: () => void;
+  // Clears entered words; pass slot IDs to clear only those, omit to clear all.
+  onClearWords: (slotIds?: string[]) => void;
 }) {
   const [globalInput, setGlobalInput] = useState("");
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
 
   // All unique first letters across prefixes, sorted.
   const letters = useMemo(() => {
@@ -256,23 +253,22 @@ export function HintsList({
     setGlobalError(null);
   }
 
-  const handleClearAll = useCallback(async () => {
-    setIsClearing(true);
-    try {
-      if (letterFilter) {
-        const slotIds = groups
-          .filter(([prefix]) => prefix[0] === letterFilter)
-          .flatMap(([, slots]) => slots.map((s) => s.id));
-        await clearWordsForSlotsAction(date, slotIds);
-      } else {
-        await clearAllWordsAction(date);
-      }
-      onClearAllWords();
-      setShowClearDialog(false);
-    } finally {
-      setIsClearing(false);
+  // Slots in scope for clearing: just the filtered letter's, or all of them.
+  const clearableSlots = useMemo(
+    () =>
+      letterFilter ? hints.filter((h) => h.prefix[0] === letterFilter) : hints,
+    [hints, letterFilter]
+  );
+  const nothingToClear = clearableSlots.every((h) => !h.word);
+
+  const handleClearAll = useCallback(() => {
+    if (letterFilter) {
+      onClearWords(clearableSlots.map((s) => s.id));
+    } else {
+      onClearWords();
     }
-  }, [date, letterFilter, groups, onClearAllWords]);
+    setShowClearDialog(false);
+  }, [letterFilter, clearableSlots, onClearWords]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
@@ -284,13 +280,13 @@ export function HintsList({
         <div className="flex items-center gap-2">
           <Button
             className="gap-1.5 text-muted-foreground text-xs hover:text-destructive"
-            disabled={isClearing || hints.every((h) => !h.word)}
+            disabled={nothingToClear}
             onClick={() => setShowClearDialog(true)}
             size="sm"
             variant="ghost"
           >
             <HugeiconsIcon icon={Delete02Icon} size={13} />
-            Clear all
+            {letterFilter ? `Clear ${letterFilter}` : "Clear all"}
           </Button>
           <Toggle
             aria-label="Hide completed words"
@@ -456,7 +452,11 @@ export function HintsList({
       <AlertDialog onOpenChange={setShowClearDialog} open={showClearDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear all words?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {letterFilter
+                ? `Clear words starting with "${letterFilter}"?`
+                : "Clear all words?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This will delete all entered words for{" "}
               {letterFilter
@@ -469,10 +469,9 @@ export function HintsList({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isClearing}
               onClick={handleClearAll}
             >
-              {isClearing ? "Clearing…" : "Clear all"}
+              {letterFilter ? `Clear ${letterFilter}` : "Clear all"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
