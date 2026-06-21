@@ -25,6 +25,7 @@ export function SolverApp() {
     setWord,
     deletePuzzle,
     dates,
+    datesReady,
     clearWords,
   } = usePuzzle();
   const [forceLoader, setForceLoader] = useState(false);
@@ -118,6 +119,7 @@ export function SolverApp() {
             autoFetchDate={autoFetchDate}
             date={date}
             dates={dates}
+            datesReady={datesReady}
             onAutoFetchHandled={() => setAutoFetchDate(null)}
             onLoad={handleLoad}
             onSelectExisting={handleDateChange}
@@ -183,6 +185,7 @@ export function SolverApp() {
             </span>
           ) : (
             <DatePicker
+              disabled={!datesReady}
               disabledDates={disabledDates}
               enabledDateIndicator
               maxDate={parseLocalDate(latestPuzzleDateISO())}

@@ -36,6 +36,8 @@ interface Props {
   // Dates that already have a saved puzzle — shown as indicators in the picker
   // and used to load existing puzzles directly instead of re-scraping.
   dates: string[];
+  // Whether the date index has loaded; routing can't be decided until it has.
+  datesReady: boolean;
   onAutoFetchHandled: () => void;
   onLoad: (matrix: MatrixData, hints: HintSlot[], id: string) => void;
   // Switch the app to an already-saved puzzle for this date (no scrape).
@@ -107,6 +109,7 @@ function CenterLetterPicker({
 export function SetupPanel({
   date,
   dates,
+  datesReady,
   autoFetchDate,
   onAutoFetchHandled,
   onSelectExisting,
@@ -338,6 +341,7 @@ export function SetupPanel({
                 <Label>Puzzle date</Label>
                 <div className="flex items-center gap-3">
                   <DatePicker
+                    disabled={!datesReady}
                     disabledDates={datesWithData}
                     enabledDateIndicator
                     maxDate={parseLocalDate(latestPuzzleDateISO())}

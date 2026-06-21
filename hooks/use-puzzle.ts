@@ -48,16 +48,27 @@ export function usePuzzle() {
 
   const puzzle = data?.puzzle ?? null;
   const dates = datesData?.dates ?? [];
+  // Whether the authoritative index has loaded. Until it has (or if it failed),
+  // an empty `dates` is not proof that nothing is saved, so callers must not make
+  // saved-vs-unsaved routing decisions yet.
+  const datesReady = datesData !== undefined;
 
   // Apply an update to the single date-index cache entry.
   const updateDates = useCallback(
-    (update: (current: string[]) => string[]) =>
-      globalMutate<DatesResponse>(
+    (update: (current: string[]) => string[]) => {
+      if (!datesData) {
+        // No authoritative list cached yet — revalidate to pull the server's
+        // list (which already reflects the save/delete we just persisted) rather
+        // than optimistically mutating from an empty array and clobbering it.
+        return globalMutate<DatesResponse>(DATES_KEY);
+      }
+      return globalMutate<DatesResponse>(
         DATES_KEY,
-        (current) => ({ dates: update(current?.dates ?? []) }),
+        { dates: update(datesData.dates) },
         { revalidate: false }
-      ),
-    [globalMutate]
+      );
+    },
+    [globalMutate, datesData]
   );
 
   // Create/replace the puzzle for the current date (or an explicit id, e.g. "sample").
@@ -198,6 +209,7 @@ export function usePuzzle() {
     loadSample,
     puzzle,
     dates,
+    datesReady,
     isLoading,
     saving,
     savePuzzle,

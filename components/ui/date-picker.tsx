@@ -18,6 +18,7 @@ function localISO(d: Date): string {
 }
 
 interface DatePickerProps {
+  disabled?: boolean;
   disabledDates?: Date[];
   enabledDateIndicator?: boolean;
   maxDate?: Date;
@@ -29,6 +30,7 @@ interface DatePickerProps {
 export function DatePicker({
   value,
   onDateChange,
+  disabled = false,
   disabledDates = [],
   enabledDateIndicator = false,
   minDate,
@@ -58,6 +60,7 @@ export function DatePicker({
               "w-auto justify-start text-left font-normal",
               !value && "text-muted-foreground"
             )}
+            disabled={disabled}
             variant="outline"
           >
             {value?.toLocaleDateString("en-US", {
