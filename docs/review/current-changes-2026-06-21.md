@@ -2,25 +2,33 @@
 
 ## Current verdict
 
-**Mostly clean.**
+**Clean.**
 
-The first review's four findings and two of the three follow-up findings have been addressed. One date-verification edge case remains.
+All findings from the review passes have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain.
 
 Priority measures impact; the review categories identify the underlying design concern.
 
-## Remaining finding
+## Resolved findings
 
-### P2: Missing scraped dates bypass date-route verification
+### Resolved: Date selection retained an unreachable null-date fallback
 
-**Area:** `app/actions.ts`, `fetchPuzzleByDateAction`; `components/setup-panel.tsx`, `handleDateSelect`
+**Area:** `components/setup-panel.tsx`, `handleDateSelect`
+
+**Categories:** Compatibility Cruft; Comment Slop; Minimality
+
+After the server action began rejecting missing page dates, the client still used `result.date ?? next` and described the now-impossible fallback in a comment.
+
+The date-selection path now uses the already verified requested date directly and the stale fallback comment has been removed.
+
+### Resolved: Missing scraped dates bypassed date-route verification
+
+**Area:** `app/actions.ts`, `fetchPuzzleByDateAction`
 
 **Categories:** Codebase Consistency; Composition and Boundaries
 
-The action now rejects a non-null scraped date that differs from the requested date. However, its condition requires `result.date` to be truthy, so a successful scrape with `date: null` still passes. The client then falls back to the requested date with `result.date ?? next`.
+The first verification fix rejected a non-null page date that differed from the request but still accepted a successful scrape with `date: null`. The client then fell back to the requested date despite having no page date to verify.
 
-This bypasses verification precisely when an upstream markup change prevents the scraper from reading the page date. Treat a missing page date as a verification failure in `fetchPuzzleByDateAction`; only return success when the parsed date equals `dateIso`.
-
-## Resolved findings
+The action now requires the parsed page date to equal the requested date. Missing and mismatched dates both return an explicit error instead of allowing the puzzle to be saved.
 
 ### Resolved: Date selection lost the fetched result
 
@@ -79,7 +87,6 @@ Cross-date saves now persist first, seed the explicit target key with SWR's glob
 The Load button previously remained enabled while a replacement date or URL fetch was pending, so the prior puzzle could be saved during that request.
 
 The existing `fetching` state is now included in the button's disabled condition.
-
 
 ## Validation
 
