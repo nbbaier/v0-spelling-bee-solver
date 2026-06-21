@@ -1,6 +1,10 @@
 "use client";
+import {
+  Cancel01Icon,
+  Delete02Icon,
+  ViewOffIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, Delete02Icon, ViewOffIcon } from "@hugeicons/core-free-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { clearAllWordsAction, clearWordsForSlotsAction } from "@/app/actions";
 import {
@@ -136,12 +140,19 @@ function SlotInput({
 export function HintsList({
   hints,
   allowedLetters,
+  availableLengthsByLetter,
+  centerLetter,
   onSetWord,
   date,
   onClearAllWords,
 }: {
   hints: HintSlot[];
   allowedLetters: string[];
+  // letter → word lengths that still have at least one unfound answer.
+  // Coarse (matrix is letter × length, not prefix × length): the badges show
+  // lengths the remaining slots *could* be, not lengths this prefix has.
+  availableLengthsByLetter: Record<string, number[]>;
+  centerLetter: string | null;
   onSetWord: (slotId: string, word: string | null) => void;
   date: string;
   onClearAllWords: () => void;
@@ -318,22 +329,38 @@ export function HintsList({
           >
             All
           </button>
-          {letters.map((l) => (
-            <button
-              aria-pressed={letterFilter === l}
-              className={cn(
-                "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
-                letterFilter === l
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/70"
-              )}
-              key={l}
-              onClick={() => setLetterFilter(letterFilter === l ? null : l)}
-              type="button"
-            >
-              {l}
-            </button>
-          ))}
+          {letters.map((l) => {
+            const selected = letterFilter === l;
+            const isCenter = l === centerLetter;
+            return (
+              <button
+                aria-pressed={selected}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+                  selected
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70"
+                )}
+                key={l}
+                onClick={() => setLetterFilter(selected ? null : l)}
+                title={isCenter ? "Center letter" : undefined}
+                type="button"
+              >
+                <span className="inline-flex items-center gap-1">
+                  {isCenter && (
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "inline-block size-1 rounded-full",
+                        selected ? "bg-primary-foreground" : "bg-primary"
+                      )}
+                    />
+                  )}
+                  {l}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -347,12 +374,31 @@ export function HintsList({
         {visibleGroups.map(([prefix, slots]) => {
           const done = slots.filter((s) => s.word).length;
           const complete = done === slots.length;
+          const availableLengths = availableLengthsByLetter[prefix[0]] ?? [];
+          const showLengths = !complete && availableLengths.length > 0;
           return (
             <div className="rounded-lg border border-border p-3" key={prefix}>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-bold font-mono text-card-foreground text-sm">
-                  {prefix}
-                </span>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="font-bold font-mono text-card-foreground text-sm">
+                    {prefix}
+                  </span>
+                  {showLengths && (
+                    <span
+                      className="flex flex-wrap gap-1"
+                      title={`Word lengths still possible for words starting with ${prefix[0]}`}
+                    >
+                      {availableLengths.map((len) => (
+                        <span
+                          className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-muted-foreground tabular-nums"
+                          key={len}
+                        >
+                          {len}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
                 <span
                   className={cn(
                     "rounded-full px-2 py-0.5 text-xs tabular-nums",

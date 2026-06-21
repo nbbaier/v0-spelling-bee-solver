@@ -7,6 +7,10 @@ const INT_RE = /^\d+$/;
 const HINT_RE = /([A-Za-z]{2,})\s*[x×*]\s*(\d+)/g;
 
 export interface MatrixParseResult {
+  // The tab-separated grid carries no center-letter information, so the parser
+  // always yields null. The setup flow fills this in from the sbsolver scrape
+  // or the manual selector before saving.
+  centerLetter: string | null;
   grid: Record<string, Record<number, number>>;
   lengths: number[];
   letters: string[];
@@ -117,7 +121,7 @@ export function parseMatrix(raw: string): MatrixParseResult {
 
   letters.sort();
 
-  return { letters, lengths: uniqueLengths, grid };
+  return { centerLetter: null, letters, lengths: uniqueLengths, grid };
 }
 
 /**

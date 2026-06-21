@@ -18,8 +18,15 @@ const PUZZLE_PATH_RE = /^\/(?:nt|n)\/([A-Za-z0-9]+)/;
 const PREFIX_HREF_RE = /\/nt\/[A-Za-z]+\/([a-z]{2})(?:[#?].*)?$/;
 const THREE_LETTER_RE = /[A-Za-z]{2,}\s*[x×*]\s*\d+/;
 const TITLE_DATE_RE = /([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/;
+// "center letter R" — the alt text on the hive's yellow hexagon.
+const CENTER_ALT_RE = /^center letter ([A-Za-z])$/;
+// The #string input capitalizes the center letter (e.g. "Rdginow"); first
+// uppercase letter is the center.
+const FIRST_UPPERCASE_RE = /[A-Z]/;
 
 export interface ScrapeResult {
+  // The puzzle's center letter (uppercase), or null if it couldn't be found.
+  centerLetter: string | null;
   // ISO YYYY-MM-DD scraped from the page, or null if it couldn't be found.
   date: string | null;
   // 2-letter prefixes whose 3-letter page failed to fetch/parse.
@@ -164,6 +171,23 @@ function parseDate(root: Root): string | null {
   return null;
 }
 
+// The center letter is the one sbsolver renders on the hive's yellow hexagon.
+// Primary signal: that <img>'s alt text is literally "center letter R".
+// Fallback: the #string input capitalizes the center letter in its value
+// (e.g. "Rdginow"), which also matches sbsolver's URL-path convention.
+function parseCenterLetter(root: Root): string | null {
+  for (const img of root.querySelectorAll("img")) {
+    const alt = img.getAttribute("alt") ?? "";
+    const m = alt.match(CENTER_ALT_RE);
+    if (m) {
+      return m[1].toUpperCase();
+    }
+  }
+  const value = root.querySelector("input#string")?.getAttribute("value") ?? "";
+  const m = value.match(FIRST_UPPERCASE_RE);
+  return m ? m[0] : null;
+}
+
 // Fetch every prefix page with a bounded concurrency pool, preserving page order.
 async function crawlThreeLetter(
   links: { prefix: string; url: string }[]
@@ -209,6 +233,7 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
 
   const matrixText = parseMatrixTable(root);
   const date = parseDate(root);
+  const centerLetter = parseCenterLetter(root);
   const links = parsePrefixLinks(root);
 
   if (links.length === 0) {
@@ -223,5 +248,5 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
     );
   }
 
-  return { matrixText, hintsText, date, failedPrefixes };
+  return { matrixText, hintsText, date, centerLetter, failedPrefixes };
 }
