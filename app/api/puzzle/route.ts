@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isValidPuzzleId } from "@/lib/keys";
-import { getPuzzle, listDates } from "@/lib/puzzle-store";
+import { getPuzzle } from "@/lib/puzzle-store";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,6 +13,8 @@ export async function GET(request: Request) {
     );
   }
 
-  const [puzzle, dates] = await Promise.all([getPuzzle(date), listDates()]);
-  return NextResponse.json({ puzzle, dates });
+  // The date index is served separately (/api/puzzle/dates) so it isn't
+  // duplicated and left stale across per-date caches.
+  const puzzle = await getPuzzle(date);
+  return NextResponse.json({ puzzle });
 }

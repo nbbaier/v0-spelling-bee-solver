@@ -13,11 +13,14 @@ import { isSampleId, SAMPLE_ID, todayISO } from "@/lib/keys";
 import type { HintSlot, MatrixData, Puzzle } from "@/lib/types";
 
 interface PuzzleResponse {
-  dates: string[];
   puzzle: Puzzle | null;
 }
 
-const fetcher = async (url: string): Promise<PuzzleResponse> => {
+interface DatesResponse {
+  dates: string[];
+}
+
+const fetcher = async <T>(url: string): Promise<T> => {
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error("Failed to load puzzle");
@@ -25,6 +28,7 @@ const fetcher = async (url: string): Promise<PuzzleResponse> => {
   return res.json();
 };
 
+const DATES_KEY = "/api/puzzle/dates";
 const keyForDate = (d: string) => `/api/puzzle?date=${d}`;
 
 export function usePuzzle() {
@@ -36,21 +40,43 @@ export function usePuzzle() {
   const { data, isLoading, mutate } = useSWR<PuzzleResponse>(key, fetcher, {
     revalidateOnFocus: false,
   });
+  // The date index is one shared cache entry, so the saved-vs-unsaved answer is
+  // the same no matter which date is currently active.
+  const { data: datesData } = useSWR<DatesResponse>(DATES_KEY, fetcher, {
+    revalidateOnFocus: false,
+  });
 
   const puzzle = data?.puzzle ?? null;
-  const dates = data?.dates ?? [];
+  const dates = datesData?.dates ?? [];
+  // Whether the authoritative index has loaded. Until it has (or if it failed),
+  // an empty `dates` is not proof that nothing is saved, so callers must not make
+  // saved-vs-unsaved routing decisions yet.
+  const datesReady = datesData !== undefined;
+
+  // Apply an update to the single date-index cache entry.
+  const updateDates = useCallback(
+    (update: (current: string[]) => string[]) => {
+      if (!datesData) {
+        // No authoritative list cached yet — revalidate to pull the server's
+        // list (which already reflects the save/delete we just persisted) rather
+        // than optimistically mutating from an empty array and clobbering it.
+        return globalMutate<DatesResponse>(DATES_KEY);
+      }
+      return globalMutate<DatesResponse>(
+        DATES_KEY,
+        { dates: update(datesData.dates) },
+        { revalidate: false }
+      );
+    },
+    [globalMutate, datesData]
+  );
 
   // Create/replace the puzzle for the current date (or an explicit id, e.g. "sample").
   const savePuzzle = useCallback(
     async (matrix: MatrixData, hints: HintSlot[], targetId?: string) => {
       const id = targetId ?? date;
       const next: Puzzle = { date: id, ...matrix, hints };
-      const nextDates = isSampleId(id)
-        ? dates
-        : Array.from(new Set([id, ...dates]))
-            .sort()
-            .reverse();
-      const response: PuzzleResponse = { puzzle: next, dates: nextDates };
+      const response: PuzzleResponse = { puzzle: next };
 
       setSaving(true);
       try {
@@ -64,20 +90,27 @@ export function usePuzzle() {
             },
             { optimisticData: response, revalidate: false }
           );
-          return;
+        } else {
+          // Cross-date save: persist first, then write the target key's cache
+          // via the global mutator and switch to it. The bound mutate is tied to
+          // the current (previous) key, and switching the date first would race
+          // an empty fetch for the target key.
+          await savePuzzleAction(id, matrix, hints);
+          await globalMutate(keyForDate(id), response, { revalidate: false });
+          setDate(id);
         }
-        // Cross-date save: persist first, then write the target key's cache via
-        // the global mutator and switch to it. The bound mutate is tied to the
-        // current (previous) key, and switching the date first would race an
-        // empty fetch for the target key.
-        await savePuzzleAction(id, matrix, hints);
-        await globalMutate(keyForDate(id), response, { revalidate: false });
-        setDate(id);
+        if (!isSampleId(id)) {
+          await updateDates((current) =>
+            Array.from(new Set([id, ...current]))
+              .sort()
+              .reverse()
+          );
+        }
       } finally {
         setSaving(false);
       }
     },
-    [date, dates, mutate, globalMutate]
+    [date, mutate, globalMutate, updateDates]
   );
 
   // Record or clear a found word, with optimistic UI.
@@ -85,39 +118,25 @@ export function usePuzzle() {
     (slotId: string, word: string | null) => {
       const cleaned =
         word && word.trim().length > 0 ? word.trim().toUpperCase() : null;
+      const apply = (current: PuzzleResponse | undefined): PuzzleResponse => {
+        if (!current?.puzzle) {
+          return { puzzle: null };
+        }
+        return {
+          puzzle: {
+            ...current.puzzle,
+            hints: current.puzzle.hints.map((s) =>
+              s.id === slotId ? { ...s, word: cleaned } : s
+            ),
+          },
+        };
+      };
       mutate(
         async (current) => {
           await setWordAction(date, slotId, cleaned);
-          if (!current?.puzzle) {
-            return current as PuzzleResponse;
-          }
-          return {
-            ...current,
-            puzzle: {
-              ...current.puzzle,
-              hints: current.puzzle.hints.map((s) =>
-                s.id === slotId ? { ...s, word: cleaned } : s
-              ),
-            },
-          };
+          return apply(current);
         },
-        {
-          optimisticData: (current) => {
-            if (!current?.puzzle) {
-              return current as PuzzleResponse;
-            }
-            return {
-              ...current,
-              puzzle: {
-                ...current.puzzle,
-                hints: current.puzzle.hints.map((s) =>
-                  s.id === slotId ? { ...s, word: cleaned } : s
-                ),
-              },
-            };
-          },
-          revalidate: false,
-        }
+        { optimisticData: apply, revalidate: false }
       );
     },
     [date, mutate]
@@ -130,20 +149,17 @@ export function usePuzzle() {
       await mutate(
         async () => {
           await deletePuzzleAction(date);
-          return { puzzle: null, dates: dates.filter((d) => d !== date) };
+          return { puzzle: null };
         },
-        {
-          optimisticData: {
-            puzzle: null,
-            dates: dates.filter((d) => d !== date),
-          },
-          revalidate: false,
-        }
+        { optimisticData: { puzzle: null }, revalidate: false }
       );
+      if (!isSampleId(date)) {
+        await updateDates((current) => current.filter((d) => d !== date));
+      }
     } finally {
       setSaving(false);
     }
-  }, [date, dates, mutate]);
+  }, [date, mutate, updateDates]);
 
   // Clear entered words for the current puzzle. Pass a list of slot IDs to clear
   // only those slots; omit it to clear every word.
@@ -154,10 +170,9 @@ export function usePuzzle() {
         current: PuzzleResponse | undefined
       ): PuzzleResponse => {
         if (!current?.puzzle) {
-          return current as PuzzleResponse;
+          return { puzzle: null };
         }
         return {
-          ...current,
           puzzle: {
             ...current.puzzle,
             hints: current.puzzle.hints.map((s) =>
@@ -194,6 +209,7 @@ export function usePuzzle() {
     loadSample,
     puzzle,
     dates,
+    datesReady,
     isLoading,
     saving,
     savePuzzle,
