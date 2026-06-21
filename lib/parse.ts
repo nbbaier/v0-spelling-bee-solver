@@ -1,12 +1,12 @@
-import type { HintSlot } from "./types"
+import type { HintSlot } from "./types";
 
-const LETTER_RE = /^[A-Za-z]$/
+const LETTER_RE = /^[A-Za-z]$/;
 
 export type MatrixParseResult = {
-  letters: string[]
-  lengths: number[]
-  grid: Record<string, Record<number, number>>
-}
+  letters: string[];
+  lengths: number[];
+  grid: Record<string, Record<number, number>>;
+};
 
 /**
  * Parses the tab-separated grid copied from sbsolver.
@@ -28,67 +28,77 @@ export function parseMatrix(raw: string): MatrixParseResult {
   const lines = raw
     .split(/\r?\n/)
     .map((l) => l.replace(/\s+$/, ""))
-    .filter((l) => l.trim().length > 0)
+    .filter((l) => l.trim().length > 0);
 
   if (lines.length === 0) {
-    throw new Error("No matrix data found. Paste the grid copied from sbsolver.")
+    throw new Error(
+      "No matrix data found. Paste the grid copied from sbsolver."
+    );
   }
 
   // Find the header row: the first row containing at least one integer cell.
-  let headerIndex = -1
-  let headerCells: string[] = []
+  let headerIndex = -1;
+  let headerCells: string[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const cells = lines[i].split("\t").map((c) => c.trim())
+    const cells = lines[i].split("\t").map((c) => c.trim());
     if (cells.some((c) => /^\d+$/.test(c))) {
-      headerIndex = i
-      headerCells = cells
-      break
+      headerIndex = i;
+      headerCells = cells;
+      break;
     }
   }
 
   if (headerIndex === -1) {
-    throw new Error("Could not find a row of word lengths. Make sure cells are tab-separated.")
+    throw new Error(
+      "Could not find a row of word lengths. Make sure cells are tab-separated."
+    );
   }
 
   // Map each column index to a word length (or null for label/total columns).
   const columnLengths: (number | null)[] = headerCells.map((c) =>
-    /^\d+$/.test(c) ? Number.parseInt(c, 10) : null,
-  )
-  const lengths = columnLengths.filter((n): n is number => n !== null)
+    /^\d+$/.test(c) ? Number.parseInt(c, 10) : null
+  );
+  const lengths = columnLengths.filter((n): n is number => n !== null);
   // De-dupe and sort ascending.
-  const uniqueLengths = Array.from(new Set(lengths)).sort((a, b) => a - b)
+  const uniqueLengths = Array.from(new Set(lengths)).sort((a, b) => a - b);
 
-  const letters: string[] = []
-  const grid: Record<string, Record<number, number>> = {}
+  const letters: string[] = [];
+  const grid: Record<string, Record<number, number>> = {};
 
   for (let i = headerIndex + 1; i < lines.length; i++) {
-    const cells = lines[i].split("\t").map((c) => c.trim())
-    const label = cells[0]
-    if (!LETTER_RE.test(label)) continue // skip totals / blank rows
+    const cells = lines[i].split("\t").map((c) => c.trim());
+    const label = cells[0];
+    if (!LETTER_RE.test(label)) {
+      continue; // skip totals / blank rows
+    }
 
-    const letter = label.toUpperCase()
+    const letter = label.toUpperCase();
     if (!grid[letter]) {
-      grid[letter] = {}
-      letters.push(letter)
+      grid[letter] = {};
+      letters.push(letter);
     }
 
     for (let c = 0; c < cells.length; c++) {
-      const len = columnLengths[c]
-      if (len == null) continue
-      const value = cells[c] === "" ? 0 : Number.parseInt(cells[c], 10)
+      const len = columnLengths[c];
+      if (len == null) {
+        continue;
+      }
+      const value = cells[c] === "" ? 0 : Number.parseInt(cells[c], 10);
       if (!Number.isNaN(value) && value > 0) {
-        grid[letter][len] = (grid[letter][len] ?? 0) + value
+        grid[letter][len] = (grid[letter][len] ?? 0) + value;
       }
     }
   }
 
   if (letters.length === 0) {
-    throw new Error("No letter rows found. Each row should start with a single letter.")
+    throw new Error(
+      "No letter rows found. Each row should start with a single letter."
+    );
   }
 
-  letters.sort()
+  letters.sort();
 
-  return { letters, lengths: uniqueLengths, grid }
+  return { letters, lengths: uniqueLengths, grid };
 }
 
 /**
@@ -96,22 +106,24 @@ export function parseMatrix(raw: string): MatrixParseResult {
  * Expands each prefix into N slots (one per word).
  */
 export function parseHints(raw: string): HintSlot[] {
-  const slots: HintSlot[] = []
-  const re = /([A-Za-z]{2,})\s*[x×*]\s*(\d+)/g
-  let match: RegExpExecArray | null
-  let counter = 0
+  const slots: HintSlot[] = [];
+  const re = /([A-Za-z]{2,})\s*[x×*]\s*(\d+)/g;
+  let match: RegExpExecArray | null;
+  let counter = 0;
 
   while ((match = re.exec(raw)) !== null) {
-    const prefix = match[1].toUpperCase()
-    const count = Number.parseInt(match[2], 10)
+    const prefix = match[1].toUpperCase();
+    const count = Number.parseInt(match[2], 10);
     for (let i = 0; i < count; i++) {
-      slots.push({ id: `${prefix}-${counter++}`, prefix, word: null })
+      slots.push({ id: `${prefix}-${counter++}`, prefix, word: null });
     }
   }
 
   if (slots.length === 0) {
-    throw new Error('No hints found. Use the "PREFIX xN" format, e.g. "DRO x4".')
+    throw new Error(
+      'No hints found. Use the "PREFIX xN" format, e.g. "DRO x4".'
+    );
   }
 
-  return slots
+  return slots;
 }
