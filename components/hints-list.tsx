@@ -88,7 +88,7 @@ function SlotInput({
   }
 
   return (
-    <div className="group relative">
+    <div className="relative">
       <Input
         aria-invalid={Boolean(error)}
         aria-label={`${slot.prefix} word`}
@@ -115,13 +115,13 @@ function SlotInput({
       />
       {error && <p className="mt-1 text-destructive text-xs">{error}</p>}
       {filled && !error && (
-        <div className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-2">
-          <span className="font-medium text-muted-foreground text-xs">
+        <div className="group/del absolute top-1/2 right-2 size-5 -translate-y-1/2">
+          <span className="absolute inset-0 inline-flex items-center justify-center font-medium text-muted-foreground text-xs transition-opacity group-focus-within/del:opacity-0 group-hover/del:opacity-0">
             {value.length}
           </span>
           <button
             aria-label="Delete word"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-destructive opacity-0 transition-[opacity,colors] hover:bg-destructive/20 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100"
+            className="absolute inset-0 inline-flex items-center justify-center rounded text-destructive opacity-0 transition-[opacity,colors] hover:bg-destructive/20 focus-visible:opacity-100 group-focus-within/del:opacity-100 group-hover/del:opacity-100"
             onClick={handleDelete}
             type="button"
           >
