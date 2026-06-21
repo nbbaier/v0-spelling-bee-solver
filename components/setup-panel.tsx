@@ -234,12 +234,21 @@ export function SetupPanel({
   }
 
   // When the parent drops us into the loader for a date with no saved puzzle,
-  // scrape it automatically, then clear the signal so re-selection re-fires.
+  // scrape it automatically. A handled-date ref makes consumption idempotent so
+  // Strict Mode's double-invoked effect can't start two scrapes for one
+  // selection; clearing the signal lets a later re-selection re-fire.
+  const handledAutoFetch = useRef<string | null>(null);
   useEffect(() => {
-    if (autoFetchDate) {
-      handleDateSelect(autoFetchDate);
-      onAutoFetchHandled();
+    if (!autoFetchDate) {
+      handledAutoFetch.current = null;
+      return;
     }
+    if (handledAutoFetch.current === autoFetchDate) {
+      return;
+    }
+    handledAutoFetch.current = autoFetchDate;
+    handleDateSelect(autoFetchDate);
+    onAutoFetchHandled();
   }, [autoFetchDate, handleDateSelect, onAutoFetchHandled]);
 
   function handleLoad() {

@@ -10,6 +10,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { usePuzzle } from "@/hooks/use-puzzle";
 import { derive } from "@/lib/derive";
 import { parseLocalDate, toLocalISO } from "@/lib/keys";
+import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
 export function SolverApp() {
@@ -184,6 +185,8 @@ export function SolverApp() {
             <DatePicker
               disabledDates={disabledDates}
               enabledDateIndicator
+              maxDate={parseLocalDate(latestPuzzleDateISO())}
+              minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
               onDateChange={(d) => handleDateChange(toLocalISO(d))}
               value={parseLocalDate(date)}
             />
