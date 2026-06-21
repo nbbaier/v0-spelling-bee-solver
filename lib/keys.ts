@@ -7,45 +7,45 @@
 //   sbs:<ID>:words     -> hash of slotId -> word (mutable progress)
 //   sbs:dates          -> set of real puzzle dates (sample is never added here)
 
-export const SAMPLE_ID = "sample"
+export const SAMPLE_ID = "sample";
 
 export const keys = {
   matrix: (id: string) => `sbs:${id}:matrix`,
   prefixes: (id: string) => `sbs:${id}:prefixes`,
   words: (id: string) => `sbs:${id}:words`,
-  dates: () => `sbs:dates`,
-}
+  dates: () => "sbs:dates",
+};
 
 // Returns today's date as an ISO YYYY-MM-DD string in local time.
 export function todayISO(): string {
-  return toLocalISO(new Date())
+  return toLocalISO(new Date());
 }
 
 // Converts a Date to a local-time YYYY-MM-DD string (avoids UTC offset issues).
 export function toLocalISO(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 // Parses a YYYY-MM-DD string as a local-time Date (new Date("YYYY-MM-DD") parses as UTC).
 export function parseLocalDate(iso: string): Date {
-  const [y, mo, d] = iso.split("-").map(Number)
-  return new Date(y, mo - 1, d)
+  const [y, mo, d] = iso.split("-").map(Number);
+  return new Date(y, mo - 1, d);
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isValidDate(date: string): boolean {
-  return DATE_RE.test(date)
+  return DATE_RE.test(date);
 }
 
 // Accepts either a real date or the sample sentinel.
 export function isValidPuzzleId(id: string): boolean {
-  return id === SAMPLE_ID || isValidDate(id)
+  return id === SAMPLE_ID || isValidDate(id);
 }
 
 export function isSampleId(id: string): boolean {
-  return id === SAMPLE_ID
+  return id === SAMPLE_ID;
 }

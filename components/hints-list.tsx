@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Toggle } from "@/components/ui/toggle"
-import { Button } from "@/components/ui/button"
+import { EyeOff, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { clearAllWordsAction, clearWordsForSlotsAction } from "@/app/actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,16 +12,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { cn } from "@/lib/utils"
-import type { HintSlot } from "@/lib/types"
-import { EyeOff, X, Trash2 } from "lucide-react"
-import { clearAllWordsAction, clearWordsForSlotsAction } from "@/app/actions"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Toggle } from "@/components/ui/toggle";
+import type { HintSlot } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 // Returns true if every character in word is in the allowed set.
 function hasOnlyAllowedLetters(word: string, allowed: string[]): boolean {
-  const set = new Set(allowed.map((l) => l.toUpperCase()))
-  return word.toUpperCase().split("").every((ch) => set.has(ch))
+  const set = new Set(allowed.map((l) => l.toUpperCase()));
+  return word
+    .toUpperCase()
+    .split("")
+    .every((ch) => set.has(ch));
 }
 
 function SlotInput({
@@ -30,105 +33,104 @@ function SlotInput({
   allowedLetters,
   onCommit,
 }: {
-  slot: HintSlot
-  allowedLetters: string[]
-  onCommit: (word: string | null) => void
+  slot: HintSlot;
+  allowedLetters: string[];
+  onCommit: (word: string | null) => void;
 }) {
-  const [value, setValue] = useState(slot.word ?? "")
-  const [showDelete, setShowDelete] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [value, setValue] = useState(slot.word ?? "");
+  const [error, setError] = useState<string | null>(null);
 
   // Keep local state in sync if the puzzle is reset/loaded externally.
   useEffect(() => {
-    setValue(slot.word ?? "")
-    setError(null)
-  }, [slot.word])
+    setValue(slot.word ?? "");
+    setError(null);
+  }, [slot.word]);
 
-  const filled = Boolean(slot.word)
+  const filled = Boolean(slot.word);
 
   function validate(raw: string): string | null {
-    const trimmed = raw.trim().toUpperCase()
-    if (!trimmed) return null
+    const trimmed = raw.trim().toUpperCase();
+    if (!trimmed) {
+      return null;
+    }
     if (!trimmed.startsWith(slot.prefix.toUpperCase())) {
-      return `Must start with ${slot.prefix.toUpperCase()}`
+      return `Must start with ${slot.prefix.toUpperCase()}`;
     }
     if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
-      return "Contains letters not in this puzzle"
+      return "Contains letters not in this puzzle";
     }
-    return null
+    return null;
   }
 
   function commit() {
-    const trimmed = value.trim().toUpperCase()
-    const err = validate(trimmed)
+    const trimmed = value.trim().toUpperCase();
+    const err = validate(trimmed);
     if (err) {
-      setError(err)
-      return
+      setError(err);
+      return;
     }
-    setError(null)
-    onCommit(trimmed.length > 0 ? trimmed : null)
+    setError(null);
+    onCommit(trimmed.length > 0 ? trimmed : null);
   }
 
   function handleDelete() {
-    setValue("")
-    setError(null)
-    onCommit(null)
-    setShowDelete(false)
+    setValue("");
+    setError(null);
+    onCommit(null);
   }
 
   function handleChange(raw: string) {
-    setValue(raw)
+    setValue(raw);
     // Clear error as soon as the user starts editing again.
-    if (error) setError(null)
+    if (error) {
+      setError(null);
+    }
   }
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => filled && setShowDelete(true)}
-      onMouseLeave={() => setShowDelete(false)}
-    >
+    <div className="relative">
       <Input
-        aria-label={`${slot.prefix} word`}
         aria-invalid={Boolean(error)}
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.currentTarget.blur()
-          }
-        }}
-        placeholder={slot.prefix.toLowerCase() + "…"}
+        aria-label={`${slot.prefix} word`}
         autoCapitalize="characters"
         autoCorrect="off"
-        spellCheck={false}
         className={cn(
           "h-9 font-mono text-sm uppercase",
-          filled && !error && "border-primary/60 bg-primary/10 font-semibold pr-10",
-          error && "border-destructive bg-destructive/5 pr-10 focus-visible:ring-destructive",
+          filled &&
+            !error &&
+            "border-primary/60 bg-primary/10 pr-10 font-semibold",
+          error &&
+            "border-destructive bg-destructive/5 pr-10 focus-visible:ring-destructive"
         )}
+        onBlur={commit}
+        onChange={(e) => handleChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur();
+          }
+        }}
+        placeholder={`${slot.prefix.toLowerCase()}…`}
+        spellCheck={false}
+        value={value}
       />
-      {error && (
-        <p className="mt-1 text-xs text-destructive">{error}</p>
-      )}
+      {error && <p className="mt-1 text-destructive text-xs">{error}</p>}
       {filled && !error && (
-        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{value.length}</span>
-          {showDelete && (
-            <button
-              onClick={handleDelete}
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-destructive transition-colors hover:bg-destructive/20"
-              aria-label="Delete word"
-              type="button"
-            >
-              <X size={14} />
-            </button>
-          )}
+        <div className="group/del absolute top-1/2 right-2 size-5 -translate-y-1/2">
+          <span className="absolute inset-0 inline-flex items-center justify-center font-medium text-muted-foreground text-xs transition-opacity group-focus-within/del:opacity-0 group-hover/del:opacity-0">
+            {value.length}
+          </span>
+          <button
+            aria-label="Delete word"
+            className="absolute inset-0 inline-flex items-center justify-center rounded text-destructive opacity-0 transition-[opacity,colors] hover:bg-destructive/20 focus-visible:opacity-100 group-focus-within/del:opacity-100 group-hover/del:opacity-100"
+            onClick={handleDelete}
+            type="button"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export function HintsList({
@@ -138,117 +140,129 @@ export function HintsList({
   date,
   onClearAllWords,
 }: {
-  hints: HintSlot[]
-  allowedLetters: string[]
-  onSetWord: (slotId: string, word: string | null) => void
-  date: string
-  onClearAllWords: () => void
+  hints: HintSlot[];
+  allowedLetters: string[];
+  onSetWord: (slotId: string, word: string | null) => void;
+  date: string;
+  onClearAllWords: () => void;
 }) {
-  const [globalInput, setGlobalInput] = useState("")
-  const [globalError, setGlobalError] = useState<string | null>(null)
-  const [letterFilter, setLetterFilter] = useState<string | null>(null)
-  const [hideCompleted, setHideCompleted] = useState(false)
-  const [showClearDialog, setShowClearDialog] = useState(false)
-  const [isClearing, setIsClearing] = useState(false)
+  const [globalInput, setGlobalInput] = useState("");
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [letterFilter, setLetterFilter] = useState<string | null>(null);
+  const [hideCompleted, setHideCompleted] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   // All unique first letters across prefixes, sorted.
   const letters = useMemo(() => {
-    const set = new Set<string>()
-    for (const slot of hints) set.add(slot.prefix[0])
-    return Array.from(set).sort()
-  }, [hints])
+    const set = new Set<string>();
+    for (const slot of hints) {
+      set.add(slot.prefix[0]);
+    }
+    return Array.from(set).sort();
+  }, [hints]);
 
   const groups = useMemo(() => {
-    const map = new Map<string, HintSlot[]>()
+    const map = new Map<string, HintSlot[]>();
     for (const slot of hints) {
-      const arr = map.get(slot.prefix) ?? []
-      arr.push(slot)
-      map.set(slot.prefix, arr)
+      const arr = map.get(slot.prefix) ?? [];
+      arr.push(slot);
+      map.set(slot.prefix, arr);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [hints])
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [hints]);
 
   // Groups after applying filters.
-  const visibleGroups = useMemo(() => {
-    return groups.filter(([prefix, slots]) => {
-      if (letterFilter && prefix[0] !== letterFilter) return false
-      if (hideCompleted && slots.every((s) => s.word)) return false
-      return true
-    })
-  }, [groups, letterFilter, hideCompleted])
+  const visibleGroups = useMemo(
+    () =>
+      groups.filter(([prefix, slots]) => {
+        if (letterFilter && prefix[0] !== letterFilter) {
+          return false;
+        }
+        if (hideCompleted && slots.every((s) => s.word)) {
+          return false;
+        }
+        return true;
+      }),
+    [groups, letterFilter, hideCompleted]
+  );
 
   function handleGlobalSubmit() {
-    const trimmed = globalInput.trim().toUpperCase()
-    if (!trimmed) return
+    const trimmed = globalInput.trim().toUpperCase();
+    if (!trimmed) {
+      return;
+    }
 
     if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
-      setGlobalError("Contains letters not in this puzzle")
-      return
+      setGlobalError("Contains letters not in this puzzle");
+      return;
     }
 
     if (trimmed.length < 3) {
-      setGlobalError("Word must be at least 3 letters")
-      return
+      setGlobalError("Word must be at least 3 letters");
+      return;
     }
 
-    const prefix = trimmed.substring(0, 3)
-    const group = groups.find(([p]) => p === prefix)
+    const prefix = trimmed.slice(0, 3);
+    const group = groups.find(([p]) => p === prefix);
     if (!group) {
-      setGlobalError(`No prefix "${prefix}" in this puzzle`)
-      return
+      setGlobalError(`No prefix "${prefix}" in this puzzle`);
+      return;
     }
 
-    const emptySlot = group[1].find((s) => !s.word)
+    const emptySlot = group[1].find((s) => !s.word);
     if (!emptySlot) {
-      setGlobalError(`All "${prefix}" slots are already filled`)
-      return
+      setGlobalError(`All "${prefix}" slots are already filled`);
+      return;
     }
 
-    onSetWord(emptySlot.id, trimmed)
-    setGlobalInput("")
-    setGlobalError(null)
+    onSetWord(emptySlot.id, trimmed);
+    setGlobalInput("");
+    setGlobalError(null);
   }
 
   const handleClearAll = useCallback(async () => {
-    setIsClearing(true)
+    setIsClearing(true);
     try {
       if (letterFilter) {
         const slotIds = groups
           .filter(([prefix]) => prefix[0] === letterFilter)
-          .flatMap(([, slots]) => slots.map((s) => s.id))
-        await clearWordsForSlotsAction(date, slotIds)
+          .flatMap(([, slots]) => slots.map((s) => s.id));
+        await clearWordsForSlotsAction(date, slotIds);
       } else {
-        await clearAllWordsAction(date)
+        await clearAllWordsAction(date);
       }
-      onClearAllWords()
-      setShowClearDialog(false)
+      onClearAllWords();
+      setShowClearDialog(false);
     } finally {
-      setIsClearing(false)
+      setIsClearing(false);
     }
-  }, [date, letterFilter, groups, onClearAllWords])
+  }, [date, letterFilter, groups, onClearAllWords]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
       {/* Header row */}
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Words</h2>
+        <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
+          Words
+        </h2>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowClearDialog(true)}
-            className="gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+            className="gap-1.5 text-muted-foreground text-xs hover:text-destructive"
             disabled={isClearing || hints.every((h) => !h.word)}
+            onClick={() => setShowClearDialog(true)}
+            size="sm"
+            variant="ghost"
           >
             <Trash2 size={13} />
             Clear all
           </Button>
           <Toggle
-            size="sm"
-            pressed={hideCompleted}
-            onPressedChange={setHideCompleted}
             aria-label="Hide completed words"
             className="gap-1.5 text-xs"
+            onPressedChange={setHideCompleted}
+            pressed={hideCompleted}
+            size="sm"
           >
             <EyeOff size={13} />
             Hide completed
@@ -259,29 +273,32 @@ export function HintsList({
       {/* Global word entry */}
       <div className="mb-3">
         <Input
-          value={globalInput}
+          aria-invalid={Boolean(globalError)}
+          autoCapitalize="characters"
+          autoCorrect="off"
+          className={cn(
+            "h-9 font-mono text-sm uppercase",
+            globalError &&
+              "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+          )}
           onChange={(e) => {
-            setGlobalInput(e.target.value)
-            if (globalError) setGlobalError(null)
+            setGlobalInput(e.target.value);
+            if (globalError) {
+              setGlobalError(null);
+            }
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              e.preventDefault()
-              handleGlobalSubmit()
+              e.preventDefault();
+              handleGlobalSubmit();
             }
           }}
-          aria-invalid={Boolean(globalError)}
           placeholder="Enter any word…"
-          autoCapitalize="characters"
-          autoCorrect="off"
           spellCheck={false}
-          className={cn(
-            "h-9 font-mono text-sm uppercase",
-            globalError && "border-destructive bg-destructive/5 focus-visible:ring-destructive",
-          )}
+          value={globalInput}
         />
         {globalError && (
-          <p className="mt-1 text-xs text-destructive">{globalError}</p>
+          <p className="mt-1 text-destructive text-xs">{globalError}</p>
         )}
       </div>
 
@@ -289,28 +306,30 @@ export function HintsList({
       {letters.length > 1 && (
         <div className="mb-4 flex flex-wrap gap-1.5">
           <button
-            onClick={() => setLetterFilter(null)}
+            aria-pressed={letterFilter === null}
             className={cn(
-              "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+              "rounded-full px-2.5 py-0.5 font-medium text-xs transition-colors",
               letterFilter === null
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/70",
+                : "bg-muted text-muted-foreground hover:bg-muted/70"
             )}
-            aria-pressed={letterFilter === null}
+            onClick={() => setLetterFilter(null)}
+            type="button"
           >
             All
           </button>
           {letters.map((l) => (
             <button
-              key={l}
-              onClick={() => setLetterFilter(letterFilter === l ? null : l)}
+              aria-pressed={letterFilter === l}
               className={cn(
-                "rounded-full px-2.5 py-0.5 font-mono text-xs font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
                 letterFilter === l
                   ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/70",
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
               )}
-              aria-pressed={letterFilter === l}
+              key={l}
+              onClick={() => setLetterFilter(letterFilter === l ? null : l)}
+              type="button"
             >
               {l}
             </button>
@@ -321,19 +340,25 @@ export function HintsList({
       {/* Groups grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {visibleGroups.length === 0 && (
-          <p className="col-span-2 py-4 text-center text-sm text-muted-foreground">No groups match the current filters.</p>
+          <p className="col-span-2 py-4 text-center text-muted-foreground text-sm">
+            No groups match the current filters.
+          </p>
         )}
         {visibleGroups.map(([prefix, slots]) => {
-          const done = slots.filter((s) => s.word).length
-          const complete = done === slots.length
+          const done = slots.filter((s) => s.word).length;
+          const complete = done === slots.length;
           return (
-            <div key={prefix} className="rounded-lg border border-border p-3">
+            <div className="rounded-lg border border-border p-3" key={prefix}>
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-sm font-bold text-card-foreground">{prefix}</span>
+                <span className="font-bold font-mono text-card-foreground text-sm">
+                  {prefix}
+                </span>
                 <span
                   className={cn(
                     "rounded-full px-2 py-0.5 text-xs tabular-nums",
-                    complete ? "bg-primary/25 font-semibold text-foreground" : "bg-muted text-muted-foreground",
+                    complete
+                      ? "bg-primary/25 font-semibold text-foreground"
+                      : "bg-muted text-muted-foreground"
                   )}
                 >
                   {done}/{slots.length}
@@ -343,29 +368,38 @@ export function HintsList({
                 {slots
                   .filter((slot) => !(hideCompleted && slot.word))
                   .map((slot) => (
-                    <SlotInput key={slot.id} slot={slot} allowedLetters={allowedLetters} onCommit={(w) => onSetWord(slot.id, w)} />
+                    <SlotInput
+                      allowedLetters={allowedLetters}
+                      key={slot.id}
+                      onCommit={(w) => onSetWord(slot.id, w)}
+                      slot={slot}
+                    />
                   ))}
               </div>
             </div>
-          )
+          );
         })}
       </div>
 
       {/* Clear all confirmation dialog */}
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+      <AlertDialog onOpenChange={setShowClearDialog} open={showClearDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Clear all words?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete all entered words for {letterFilter ? `words starting with "${letterFilter}"` : "this puzzle"}. This action cannot be undone.
+              This will delete all entered words for{" "}
+              {letterFilter
+                ? `words starting with "${letterFilter}"`
+                : "this puzzle"}
+              . This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleClearAll}
-              disabled={isClearing}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isClearing}
+              onClick={handleClearAll}
             >
               {isClearing ? "Clearing…" : "Clear all"}
             </AlertDialogAction>
@@ -373,5 +407,5 @@ export function HintsList({
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

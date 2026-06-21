@@ -10,7 +10,7 @@ export const SAMPLE_MATRIX = [
   "O\t2\t1\t1\t\t4",
   "R\t1\t1\t\t1\t3",
   "Σ\t6\t8\t5\t3\t22",
-].join("\n")
+].join("\n");
 
 export const SAMPLE_HINTS = [
   "DON x2  DOO x1  DRO x2  DUN x2",
@@ -18,4 +18,4 @@ export const SAMPLE_HINTS = [
   "NOD x2  NOO x2",
   "ODO x2  ORD x2",
   "RID x2  ROO x1",
-].join("\n")
+].join("\n");
