@@ -1,6 +1,7 @@
 "use server";
 
 import { isValidPuzzleId } from "@/lib/keys";
+import { isPuzzleDateInRange, puzzleNumberForDate } from "@/lib/puzzle-date";
 import {
   clearAllWords,
   clearWordsForSlots,
@@ -24,9 +25,7 @@ export type FetchPuzzleResult =
     }
   | { ok: false; error: string };
 
-export async function fetchPuzzleFromUrlAction(
-  url: string
-): Promise<FetchPuzzleResult> {
+async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
   try {
     const { matrixText, hintsText, date, centerLetter, failedPrefixes } =
       await scrapePuzzle(url);
@@ -44,6 +43,24 @@ export async function fetchPuzzleFromUrlAction(
       error: e instanceof Error ? e.message : "Could not fetch that puzzle.",
     };
   }
+}
+
+export async function fetchPuzzleFromUrlAction(
+  url: string
+): Promise<FetchPuzzleResult> {
+  return await fetchPuzzle(url);
+}
+
+export async function fetchPuzzleByDateAction(
+  dateIso: string
+): Promise<FetchPuzzleResult> {
+  if (!isPuzzleDateInRange(dateIso)) {
+    return { ok: false, error: "No puzzle is available for that date." };
+  }
+  // sbsolver accepts the numeric puzzle id directly (/nt/<number>), so the date
+  // resolves to a URL with no extra lookup. See lib/puzzle-date.ts.
+  const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(dateIso)}`;
+  return await fetchPuzzle(url);
 }
 
 export async function savePuzzleAction(
