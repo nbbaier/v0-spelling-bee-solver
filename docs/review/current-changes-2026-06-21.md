@@ -4,11 +4,41 @@
 
 **Clean.**
 
-All findings from the review passes have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain.
+All findings reviewed through the date-picker unification follow-up have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain in that changeset.
 
 Priority measures impact; the review categories identify the underlying design concern.
 
 ## Resolved findings
+
+### Resolved: Saved-date routing relied on stale per-key metadata
+
+**Area:** `components/solver-app.tsx`, `handleDateChange`; `components/setup-panel.tsx`, `handleDateSelect`; `hooks/use-puzzle.ts`, SWR mutations
+
+**Categories:** Composition and Boundaries; Codebase Consistency; React / Next.js Quality
+
+Both date pickers branched on `dates.includes(next)`, but `dates` was duplicated inside every date-specific SWR cache entry. Save and delete mutations updated only the active or target entry, leaving other cached entries with an older date index.
+
+The date index now has a dedicated `/api/puzzle/dates` endpoint and one shared SWR cache key. Save and delete operations update that single entry instead of leaving per-puzzle copies stale.
+
+### Resolved: Auto-fetch could scrape twice under Strict Mode
+
+**Area:** `components/setup-panel.tsx`, auto-fetch effect
+
+**Categories:** React / Next.js Quality; Effect Slop; Minimality
+
+The mount effect translated `autoFetchDate` into a server action. App Router Strict Mode replays the effect in development and could start two scrapes for one selection; the request token ignored the first result but could not cancel its external requests.
+
+The effect now records the handled date in a ref, making signal consumption idempotent across Strict Mode's replay while still allowing a later re-selection to fire again.
+
+### Resolved: The header picker lacked the setup picker's date bounds
+
+**Area:** `components/solver-app.tsx`, header `DatePicker`
+
+**Categories:** Codebase Consistency; Minimality
+
+The setup picker disabled dates before the first supported puzzle and after the latest published date, while the header picker allowed them and entered a fetch flow that could only fail server-side validation.
+
+Both pickers now receive the same `minDate` and `maxDate` values.
 
 ### Resolved: Date selection retained an unreachable null-date fallback
 
