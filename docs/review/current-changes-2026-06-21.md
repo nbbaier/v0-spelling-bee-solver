@@ -4,11 +4,21 @@
 
 **Clean.**
 
-All findings reviewed through the date-picker unification follow-up have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain in that changeset.
+All findings reviewed through the shared date-index follow-up have been addressed. No meaningful reuse, composition, consistency, or slop concerns remain in that changeset.
 
 Priority measures impact; the review categories identify the underlying design concern.
 
 ## Resolved findings
+
+### Resolved: An unavailable date index was treated as an authoritative empty list
+
+**Area:** `hooks/use-puzzle.ts`, shared date-index SWR state and `updateDates`; date-selection consumers in `components/solver-app.tsx` and `components/setup-panel.tsx`
+
+**Categories:** Composition and Boundaries; Codebase Consistency; React / Next.js Quality
+
+The dedicated `/api/puzzle/dates` cache fixed the per-key staleness problem, but the hook exposed `datesData?.dates ?? []` without distinguishing an unavailable index from a successfully loaded empty index. Date pickers could route an existing date into the scrape flow before the index loaded, and mutations could rebuild the client index from a partial list.
+
+The hook now exposes `datesReady`, and both date pickers remain disabled until the authoritative index is available. When `updateDates` has no cached index, it revalidates from the server rather than mutating from `[]`.
 
 ### Resolved: Saved-date routing relied on stale per-key metadata
 
