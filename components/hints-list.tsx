@@ -35,10 +35,12 @@ function hasOnlyAllowedLetters(word: string, allowed: string[]): boolean {
 function SlotInput({
   slot,
   allowedLetters,
+  existingWords,
   onCommit,
 }: {
   slot: HintSlot;
   allowedLetters: string[];
+  existingWords: Set<string>;
   onCommit: (word: string | null) => void;
 }) {
   const [value, setValue] = useState(slot.word ?? "");
@@ -62,6 +64,12 @@ function SlotInput({
     }
     if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
       return "Contains letters not in this puzzle";
+    }
+    if (
+      existingWords.has(trimmed) &&
+      trimmed !== (slot.word ?? "").toUpperCase()
+    ) {
+      return "Already entered";
     }
     return null;
   }
@@ -173,6 +181,17 @@ export function HintsList({
     return Array.from(set).sort();
   }, [hints]);
 
+  // Uppercased set of all filled words, for duplicate detection.
+  const existingWords = useMemo(() => {
+    const set = new Set<string>();
+    for (const slot of hints) {
+      if (slot.word) {
+        set.add(slot.word.toUpperCase());
+      }
+    }
+    return set;
+  }, [hints]);
+
   const groups = useMemo(() => {
     const map = new Map<string, HintSlot[]>();
     for (const slot of hints) {
@@ -211,6 +230,11 @@ export function HintsList({
 
     if (trimmed.length < 3) {
       setGlobalError("Word must be at least 3 letters");
+      return;
+    }
+
+    if (existingWords.has(trimmed)) {
+      setGlobalError("Already entered");
       return;
     }
 
@@ -416,6 +440,7 @@ export function HintsList({
                   .map((slot) => (
                     <SlotInput
                       allowedLetters={allowedLetters}
+                      existingWords={existingWords}
                       key={slot.id}
                       onCommit={(w) => onSetWord(slot.id, w)}
                       slot={slot}
