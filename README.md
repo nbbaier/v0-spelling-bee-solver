@@ -1,33 +1,59 @@
-# v0-spelling-bee-solver
+# Spelling Bee Solver
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+An interactive solver for the [New York Times Spelling Bee](https://www.nytimes.com/games/spelling-bee) word puzzle game. Paste a puzzle and get hints, track progress, and manage multiple puzzles by date.
 
-## Built with v0
+## Features
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
-
-[Continue working on v0 →](https://v0.app/chat/projects/prj_A1aZpSOc8EouPtkkn3khQ7P4jVpf)
+- **Smart hint system**: Get word hints organized by first letter and length
+- **Progress tracking**: See which words you've found and which remain
+- **Date navigation**: Load and switch between different daily puzzles
+- **Persistent storage**: Automatically save your progress
+- **Today's puzzle**: Quick-load the latest puzzle
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- pnpm 10+ (or npm/yarn)
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+```
+
+3. Start the development server:
+
+```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development
 
-## Learn More
+This project uses [Ultracite](https://github.com/biomejs/biome) for code quality and formatting.
 
-To learn more, take a look at the following resources:
+- **Check code**: `pnpm lint`
+- **Format code**: `pnpm fix`
+- **Build for production**: `pnpm build`
+- **Run production build**: `pnpm start`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## Project Structure
+
+- `app/` - Next.js app routes and layouts
+- `components/` - React components for UI
+- `lib/` - Solver logic, puzzle parsing, and utilities
+- `hooks/` - Custom React hooks for state management
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org) - React framework
+- [TypeScript](https://www.typescriptlang.org) - Type safety
+- [Tailwind CSS](https://tailwindcss.com) - Styling
+- [SWR](https://swr.vercel.app) - Data fetching
+- [Upstash Redis](https://upstash.com) - Puzzle storage
