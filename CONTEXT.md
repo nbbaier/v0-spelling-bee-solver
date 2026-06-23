@@ -6,6 +6,10 @@ A glossary of the domain language for this project. Terms only — no implementa
 
 A single day's New York Times Spelling Bee, identified in this app by its **date** (`YYYY-MM-DD`). Date is the storage key. sbsolver instead identifies a puzzle by a number (`/nt/2965`) or by its letter string (`/nt/Rdginow`); neither is a date, so a puzzle's date must be read from the page itself.
 
+## Room
+
+A persistent group of solvers who work through puzzles together over time. Identified by a **generated memorable name** (e.g. `purple-elephant-kite`) — this name is simultaneously the join mechanism (knowing it = joining), the shareable handle, and the URL slug. A room spans dates (unlike a puzzle, which is for one day): it holds, per date, the group's entered words. Distinct from a Puzzle: the puzzle is the static daily *definition*; the room is *who's solving* and *what they've found so far*, across many days.
+
 ## Letter set
 
 The **seven** letters that make up a puzzle. Distinct from the matrix's rows (see Matrix): a puzzle always has exactly seven letters, but the matrix only lists letters that *begin* at least one answer, so the letter set cannot be recovered from the matrix. Its authoritative source is sbsolver's letter string (the `#string` input value / URL path, e.g. `Rdginow`), which lists all seven with the center letter capitalized. A hand-pasted grid carries no letter string, so a hand-pasted puzzle's letter set may be incomplete and must be confirmed by the user.
