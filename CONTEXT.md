@@ -6,13 +6,23 @@ A glossary of the domain language for this project. Terms only — no implementa
 
 A single day's New York Times Spelling Bee, identified in this app by its **date** (`YYYY-MM-DD`). Date is the storage key. sbsolver instead identifies a puzzle by a number (`/nt/2965`) or by its letter string (`/nt/Rdginow`); neither is a date, so a puzzle's date must be read from the page itself.
 
+## Letter set
+
+The **seven** letters that make up a puzzle. Distinct from the matrix's rows (see Matrix): a puzzle always has exactly seven letters, but the matrix only lists letters that *begin* at least one answer, so the letter set cannot be recovered from the matrix. Its authoritative source is sbsolver's letter string (the `#string` input value / URL path, e.g. `Rdginow`), which lists all seven with the center letter capitalized. A hand-pasted grid carries no letter string, so a hand-pasted puzzle's letter set may be incomplete and must be confirmed by the user.
+
 ## Center letter
 
 The one puzzle letter that must appear in **every** answer. sbsolver marks it two ways on a puzzle page: the hive's yellow hexagon `<img>` has `alt="center letter R"`, and the `#string` input (and the URL path) capitalizes it (`Rdginow`). This app scrapes it from those signals and stores it on `MatrixData.centerLetter` (nullable — the tab-separated grid alone carries no center info, so a hand-pasted puzzle starts null until the user picks one in the setup panel).
 
+## Pangram
+
+An answer that uses **all seven** letters of the puzzle's letter set. A puzzle has at least one by definition (NYT guarantees it). The pangram *count* is a static property of the puzzle definition, alongside the grid and center letter — it is not derived from progress. It cannot be computed from the matrix alone, which only knows start letters, not the full letter set.
+
 ## Matrix (a.k.a. Grid)
 
-The letters × word-length table: rows are the puzzle's letters, columns are word lengths, each cell is the count of answers of that letter and length. Corresponds to sbsolver's `bee bee-grid` table.
+The start-letter × word-length table: rows are **start letters** (the first letter of an answer), columns are word lengths, each cell is the count of answers that *begin* with that letter and have that length. Corresponds to sbsolver's `bee bee-grid` table.
+
+Rows are **not** the puzzle's seven letters (see Letter set): a puzzle letter that begins zero answers — even one used heavily mid-word — produces no row. So the matrix is a view over the answers grouped by start letter, never the source of the letter set.
 
 ## Hint list
 
