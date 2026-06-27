@@ -1,0 +1,39 @@
+# scripts
+
+One-off operational scripts. Not part of the app runtime.
+
+## `migrate-letters-to-start-letters.ts`
+
+One-time migration for the `MatrixData.letters` → `startLetters` rename.
+
+### Do I need to run it?
+
+Only if the KV/Redis instance your app reads **already holds saved puzzles**.
+Puzzles saved before the rename stored their grid rows under `letters`, so
+after deploy `getPuzzle` reads `startLetters` as `undefined` and those puzzles'
+matrix/progress break. Puzzles saved after the deploy write `startLetters`
+correctly and need nothing.
+
+Check whether any puzzles are saved (read-only, mutates nothing):
+
+```bash
+node --env-file=.env.local --import tsx -e \
+  "import {redis} from './lib/redis.ts'; import {keys} from './lib/keys.ts'; console.log(await redis.smembers(keys.dates()))"
+```
+
+- `[]` → nothing to migrate, skip it. (A `sample` puzzle isn't in this set; just
+  re-load it from the setup panel if needed.)
+- non-empty → run the migration once **after** the new code is live.
+
+### Running
+
+```bash
+pnpm migrate:start-letters
+```
+
+Needs `KV_REST_API_URL` / `KV_REST_API_TOKEN` (loaded from `.env.local`). It
+refetches each saved puzzle from sbsolver and rewrites only the matrix key —
+entered words and hint slots are preserved, so it's safe to run on data with
+progress. It is idempotent (already-migrated matrices are skipped) and per
+environment: run it against each KV store that has its own saved data
+(production, preview, local) using that environment's credentials.
