@@ -188,7 +188,7 @@ export function SetupPanel({
       return [];
     }
     try {
-      return parseMatrix(matrixText).letters;
+      return parseMatrix(matrixText).startLetters;
     } catch {
       return [];
     }
@@ -306,10 +306,10 @@ export function SetupPanel({
     setError(null);
     if (mode === "sample") {
       try {
-        const { letters, lengths, grid } = parseMatrix(SAMPLE_MATRIX);
+        const { startLetters, lengths, grid } = parseMatrix(SAMPLE_MATRIX);
         const hints = parseHints(SAMPLE_HINTS);
         onLoad(
-          { centerLetter: SAMPLE_CENTER_LETTER, letters, lengths, grid },
+          { centerLetter: SAMPLE_CENTER_LETTER, startLetters, lengths, grid },
           hints,
           SAMPLE_ID
         );
@@ -321,10 +321,10 @@ export function SetupPanel({
       return;
     }
     try {
-      const { letters, lengths, grid } = parseMatrix(matrixText);
+      const { startLetters, lengths, grid } = parseMatrix(matrixText);
       const hints = parseHints(hintsText);
       onLoad(
-        { centerLetter, letters, lengths, grid },
+        { centerLetter, startLetters, lengths, grid },
         hints,
         fetchedDate ?? date
       );

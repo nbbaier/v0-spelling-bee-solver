@@ -14,8 +14,11 @@ export interface MatrixData {
   grid: Record<string, Record<number, number>>;
   // Sorted ascending list of word lengths (column headers)
   lengths: number[];
-  // Uppercase letters present in the grid (row headers)
-  letters: string[];
+  // Uppercase row labels of the grid: the start letters of answers (each is the
+  // first letter of at least one answer). NOT the puzzle's authoritative
+  // 7-letter set — a puzzle letter that begins no answer never appears here.
+  // See CONTEXT.md → Matrix.
+  startLetters: string[];
 }
 
 export type Puzzle = MatrixData & {

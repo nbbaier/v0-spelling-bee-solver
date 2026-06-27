@@ -1,4 +1,5 @@
 import "server-only";
+import { assemblePuzzle, type StoredMatrix } from "./assemble-puzzle";
 import { isSampleId, keys } from "./keys";
 import { redis } from "./redis";
 import type { HintSlot, MatrixData, Puzzle } from "./types";
@@ -7,7 +8,9 @@ import type { HintSlot, MatrixData, Puzzle } from "./types";
 // Returns null if no puzzle has been saved for that date.
 export async function getPuzzle(date: string): Promise<Puzzle | null> {
   const [matrix, prefixes, words] = await Promise.all([
-    redis.get<MatrixData>(keys.matrix(date)),
+    // StoredMatrix, not MatrixData: a row saved before the rename has `letters`
+    // and no `startLetters`. assemblePuzzle tolerates either until migrated.
+    redis.get<StoredMatrix>(keys.matrix(date)),
     redis.get<HintSlot[]>(keys.prefixes(date)),
     redis.hgetall<Record<string, string>>(keys.words(date)),
   ]);
@@ -16,19 +19,7 @@ export async function getPuzzle(date: string): Promise<Puzzle | null> {
     return null;
   }
 
-  const hints: HintSlot[] = prefixes.map((slot) => ({
-    ...slot,
-    word: words?.[slot.id] ?? null,
-  }));
-
-  return {
-    date,
-    centerLetter: matrix.centerLetter ?? null,
-    letters: matrix.letters,
-    lengths: matrix.lengths,
-    grid: matrix.grid,
-    hints,
-  };
+  return assemblePuzzle(date, matrix, prefixes, words);
 }
 
 // Saves the static puzzle definition (matrix + prefix slots) for a date/id and

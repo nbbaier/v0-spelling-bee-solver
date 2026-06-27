@@ -37,7 +37,7 @@ export function MatrixGrid({
   puzzle: Puzzle;
   derived: Derived;
 }) {
-  const { letters, lengths } = puzzle;
+  const { startLetters, lengths } = puzzle;
   const centerLetter = puzzle.centerLetter ?? null;
   const {
     found,
@@ -71,7 +71,7 @@ export function MatrixGrid({
           </tr>
         </thead>
         <tbody>
-          {letters.map((letter) => {
+          {startLetters.map((letter) => {
             const isCenter = letter === centerLetter;
             return (
               <tr key={letter}>
