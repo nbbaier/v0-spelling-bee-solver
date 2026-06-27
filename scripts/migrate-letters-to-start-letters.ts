@@ -43,13 +43,18 @@ async function migrateDate(date: string): Promise<Outcome> {
   const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(date)}`;
   const scrape = await scrapePuzzle(url);
 
-  // Guard against the date→number mapping resolving to a different day (a gap or
-  // upstream renumbering), which would otherwise store one puzzle under another.
-  if (scrape.date && scrape.date !== date) {
+  // The date→number mapping is unverified until the scraped page confirms its
+  // own date. Require an exact match — mirroring fetchPuzzleByDateAction, a
+  // missing page date is a verification failure, not a pass — so a gap, redirect,
+  // or unreadable markup can never rewrite this date's matrix with another day's
+  // grid (which would be silently mismatched against the preserved prefixes/words).
+  if (scrape.date !== date) {
     return {
       date,
       status: "failed",
-      reason: `scrape resolved to ${scrape.date}, not ${date}`,
+      reason: scrape.date
+        ? `scrape resolved to ${scrape.date}, not ${date}`
+        : "could not confirm the puzzle's date on the scraped page",
     };
   }
 
