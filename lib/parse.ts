@@ -13,7 +13,8 @@ export interface MatrixParseResult {
   centerLetter: string | null;
   grid: Record<string, Record<number, number>>;
   lengths: number[];
-  letters: string[];
+  // Row labels of the grid (start letters of answers). See MatrixData.startLetters.
+  startLetters: string[];
 }
 
 /** Splits raw input into trimmed, non-empty lines. */
@@ -40,7 +41,7 @@ function addRow(
   line: string,
   columnLengths: (number | null)[],
   grid: Record<string, Record<number, number>>,
-  letters: string[]
+  startLetters: string[]
 ): void {
   const cells = line.split("\t").map((c) => c.trim());
   const label = cells[0];
@@ -51,7 +52,7 @@ function addRow(
   const letter = label.toUpperCase();
   if (!grid[letter]) {
     grid[letter] = {};
-    letters.push(letter);
+    startLetters.push(letter);
   }
 
   for (let c = 0; c < cells.length; c++) {
@@ -106,22 +107,22 @@ export function parseMatrix(raw: string): MatrixParseResult {
   // De-dupe and sort ascending.
   const uniqueLengths = Array.from(new Set(lengths)).sort((a, b) => a - b);
 
-  const letters: string[] = [];
+  const startLetters: string[] = [];
   const grid: Record<string, Record<number, number>> = {};
 
   for (let i = header.index + 1; i < lines.length; i++) {
-    addRow(lines[i], columnLengths, grid, letters);
+    addRow(lines[i], columnLengths, grid, startLetters);
   }
 
-  if (letters.length === 0) {
+  if (startLetters.length === 0) {
     throw new Error(
       "No letter rows found. Each row should start with a single letter."
     );
   }
 
-  letters.sort();
+  startLetters.sort();
 
-  return { centerLetter: null, letters, lengths: uniqueLengths, grid };
+  return { centerLetter: null, startLetters, lengths: uniqueLengths, grid };
 }
 
 /**

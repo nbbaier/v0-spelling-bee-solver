@@ -47,7 +47,7 @@ export function SolverApp() {
       return {} as Record<string, number[]>;
     }
     const out: Record<string, number[]> = {};
-    for (const letter of puzzle.letters) {
+    for (const letter of puzzle.startLetters) {
       const lengths: number[] = [];
       for (const len of puzzle.lengths) {
         const total = puzzle.grid[letter]?.[len] ?? 0;
@@ -172,7 +172,7 @@ export function SolverApp() {
           </div>
           <div className="space-y-4">
             <HintsList
-              allowedLetters={puzzle.letters}
+              allowedLetters={puzzle.startLetters}
               availableLengthsByLetter={availableLengthsByLetter}
               centerLetter={puzzle.centerLetter}
               hints={puzzle.hints}

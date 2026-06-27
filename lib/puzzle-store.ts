@@ -24,7 +24,7 @@ export async function getPuzzle(date: string): Promise<Puzzle | null> {
   return {
     date,
     centerLetter: matrix.centerLetter ?? null,
-    letters: matrix.letters,
+    startLetters: matrix.startLetters,
     lengths: matrix.lengths,
     grid: matrix.grid,
     hints,

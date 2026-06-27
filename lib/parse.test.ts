@@ -10,7 +10,7 @@ describe("parseMatrix", () => {
   it("parses the sample grid into sorted row letters, lengths, and counts", () => {
     const result = parseMatrix(SAMPLE_MATRIX);
 
-    expect(result.letters).toEqual(["D", "G", "N", "O", "R"]);
+    expect(result.startLetters).toEqual(["D", "G", "N", "O", "R"]);
     expect(result.lengths).toEqual([4, 5, 6, 7]);
     expect(result.centerLetter).toBeNull();
     expect(result.grid).toEqual({
@@ -26,7 +26,7 @@ describe("parseMatrix", () => {
     const raw = ["\t4\t5\tΣ", "a\t1\t2\t3", "Σ\t1\t2\t3"].join("\n");
     const result = parseMatrix(raw);
 
-    expect(result.letters).toEqual(["A"]);
+    expect(result.startLetters).toEqual(["A"]);
     expect(result.lengths).toEqual([4, 5]);
     expect(result.grid).toEqual({ A: { 4: 1, 5: 2 } });
   });

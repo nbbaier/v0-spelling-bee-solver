@@ -20,7 +20,7 @@ export function derive(puzzle: Puzzle): Derived {
   const letterTotals: Record<string, number> = {};
   const letterFound: Record<string, number> = {};
 
-  for (const letter of puzzle.letters) {
+  for (const letter of puzzle.startLetters) {
     found[letter] = {};
     letterTotals[letter] = 0;
     letterFound[letter] = 0;
@@ -31,7 +31,7 @@ export function derive(puzzle: Puzzle): Derived {
   }
 
   let totalWords = 0;
-  for (const letter of puzzle.letters) {
+  for (const letter of puzzle.startLetters) {
     for (const len of puzzle.lengths) {
       const t = puzzle.grid[letter]?.[len] ?? 0;
       totalWords += t;

@@ -2,7 +2,7 @@
 // Puzzle data is namespaced by puzzle ID, which is either an ISO date (YYYY-MM-DD)
 // or the literal string "sample" for the dev dummy dataset.
 //
-//   sbs:<ID>:matrix    -> JSON of the parsed grid { letters, lengths, grid }
+//   sbs:<ID>:matrix    -> JSON of the parsed grid { startLetters, lengths, grid }
 //   sbs:<ID>:prefixes  -> JSON of the hint slots [{ id, prefix, word: null }]
 //   sbs:<ID>:words     -> hash of slotId -> word (mutable progress)
 //   sbs:dates          -> set of real puzzle dates (sample is never added here)
