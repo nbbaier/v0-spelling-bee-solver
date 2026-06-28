@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HintsList } from "@/components/hints-list";
 import { MatrixGrid } from "@/components/matrix-grid";
 import { ProgressSummary } from "@/components/progress-summary";
@@ -9,11 +10,25 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { usePuzzle } from "@/hooks/use-puzzle";
 import { derive } from "@/lib/derive";
-import { parseLocalDate, toLocalISO } from "@/lib/keys";
+import { isSampleId, parseLocalDate, toLocalISO } from "@/lib/keys";
 import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
+const DATE_PARAM_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function getInitialDate(param: string | null): string | undefined {
+  if (!param) {
+    return;
+  }
+  if (isSampleId(param) || DATE_PARAM_RE.test(param)) {
+    return param;
+  }
+}
+
 export function SolverApp() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialDate = getInitialDate(searchParams.get("date"));
   const {
     date,
     setDate,
@@ -29,8 +44,17 @@ export function SolverApp() {
     datesError,
     reloadDates,
     clearWords,
-  } = usePuzzle();
+  } = usePuzzle(initialDate);
   const [forceLoader, setForceLoader] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get("date") === date) {
+      return;
+    }
+    params.set("date", date);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [date, router, searchParams]);
   // When the user picks a date that has no saved puzzle, we drop into the loader
   // and signal SetupPanel to scrape that date automatically. Cleared once the
   // panel consumes it (see onAutoFetchHandled) so re-selecting a date re-fires.
