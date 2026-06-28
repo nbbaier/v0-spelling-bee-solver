@@ -31,8 +31,8 @@ const fetcher = async <T>(url: string): Promise<T> => {
 const DATES_KEY = "/api/puzzle/dates";
 const keyForDate = (d: string) => `/api/puzzle?date=${d}`;
 
-export function usePuzzle() {
-  const [date, setDate] = useState<string>(todayISO());
+export function usePuzzle(initialDate?: string) {
+  const [date, setDate] = useState<string>(initialDate ?? todayISO());
   const [saving, setSaving] = useState(false);
   const { mutate: globalMutate } = useSWRConfig();
 
