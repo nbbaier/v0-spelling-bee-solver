@@ -122,3 +122,17 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `pnpm dlx ultracite fix` before committing to ensure compliance.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues (github.com/nbbaier/v0-spelling-bee-solver) via the `gh` CLI; external PRs are not treated as a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the default label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix) — `wontfix` and `ready-for-agent` already exist in the repo. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
