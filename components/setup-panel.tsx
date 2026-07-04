@@ -400,7 +400,11 @@ export function SetupPanel({
       onLoad(
         {
           centerLetter,
-          letterSet: normalizedLetterSet,
+          // Persist the set only when it holds all seven letters. An incomplete
+          // hand-confirmed set is stored as "" (unknown) so nothing downstream
+          // trusts it as authoritative; validation then falls back to the grid's
+          // start letters. See lib/letters.ts → allowedLetters.
+          letterSet: letterSetComplete ? normalizedLetterSet : "",
           startLetters,
           lengths,
           grid,

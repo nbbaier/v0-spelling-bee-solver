@@ -17,6 +17,28 @@ describe("allowedLetters", () => {
       ["D", "O"]
     );
   });
+
+  it("always includes every start letter, even when the set omits one", () => {
+    // An incomplete hand-confirmed set that dropped a start letter must not make
+    // validation stricter than start-letters-only (a start letter is always a
+    // puzzle letter), so R-words stay valid.
+    const allowed = allowedLetters({
+      letterSet: "DO",
+      startLetters: ["D", "O", "R"],
+    });
+
+    expect(allowed).toEqual(expect.arrayContaining(["D", "O", "R"]));
+    expect(hasOnlyAllowedLetters("ROD", allowed)).toBe(true);
+  });
+
+  it("tolerates separators and duplicates in a stored set", () => {
+    const allowed = allowedLetters({
+      letterSet: "d-g n o",
+      startLetters: ["D"],
+    });
+
+    expect(new Set(allowed)).toEqual(new Set(["D", "G", "N", "O"]));
+  });
 });
 
 describe("hasOnlyAllowedLetters", () => {

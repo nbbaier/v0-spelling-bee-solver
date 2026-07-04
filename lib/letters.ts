@@ -2,18 +2,24 @@ import type { Puzzle } from "./types";
 
 const LETTER_RE = /[A-Za-z]/;
 
-// The letters a valid answer may use. Prefer the authoritative 7-letter
-// `letterSet` (so a word using a puzzle letter that begins no answer still
-// validates — the #19 regression). Fall back to the grid's start letters for a
-// puzzle whose set is unknown: a row persisted before `letterSet` existed, or a
-// hand-pasted grid the user never confirmed. See CONTEXT.md → Letter set.
+// The letters a valid answer may use: the union of the authoritative 7-letter
+// `letterSet` and the grid's start letters.
+//
+// The set adds the mid-word-only letters that fix #19 (a valid word using a
+// puzzle letter that begins no answer). Unioning in the start letters guarantees
+// validation is never *stricter* than start-letters-only — every start letter is
+// by definition a puzzle letter, so an incomplete, unknown (""), or malformed
+// stored set degrades to at-least-startLetters instead of wrongly rejecting
+// valid words. In the normal case a complete set already contains every start
+// letter, so the union is just the set itself. See CONTEXT.md → Letter set.
 export function allowedLetters(
   puzzle: Pick<Puzzle, "letterSet" | "startLetters">
 ): string[] {
-  if (puzzle.letterSet.length > 0) {
-    return puzzle.letterSet.toUpperCase().split("");
+  const allowed = new Set(puzzle.startLetters.map((l) => l.toUpperCase()));
+  for (const ch of normalizeLetterSet(puzzle.letterSet)) {
+    allowed.add(ch);
   }
-  return puzzle.startLetters;
+  return Array.from(allowed);
 }
 
 // Returns true if every character in `word` is in the allowed set.
