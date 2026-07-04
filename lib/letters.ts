@@ -48,3 +48,20 @@ export function normalizeLetterSet(raw: string): string {
   }
   return out.join("");
 }
+
+// Whether a hand-confirmed letter set is authoritative: all seven puzzle letters
+// AND every grid start letter. Requiring the start letters closes a hole — a
+// 7-letter set that omitted a start letter would be unioned back to eight
+// allowed letters by allowedLetters(), letting the erroneous extra letter pass
+// validation. An authoritative set is a superset of the start letters, so that
+// union is a no-op. See components/setup-panel.tsx.
+export function isCompleteLetterSet(
+  letterSet: string,
+  startLetters: string[]
+): boolean {
+  const normalized = normalizeLetterSet(letterSet);
+  if (normalized.length !== 7) {
+    return false;
+  }
+  return startLetters.every((l) => normalized.includes(l.toUpperCase()));
+}

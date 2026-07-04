@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   allowedLetters,
   hasOnlyAllowedLetters,
+  isCompleteLetterSet,
   normalizeLetterSet,
 } from "./letters";
 
@@ -64,6 +65,30 @@ describe("hasOnlyAllowedLetters", () => {
     });
 
     expect(hasOnlyAllowedLetters("DOZING", allowed)).toBe(false); // Z not in set
+  });
+});
+
+describe("isCompleteLetterSet", () => {
+  it("accepts a 7-letter set that contains every start letter", () => {
+    expect(isCompleteLetterSet("DGNORUI", ["D", "G", "N", "O", "R"])).toBe(
+      true
+    );
+  });
+
+  it("rejects a 7-letter set that omits a start letter (typo'd extra)", () => {
+    // Seven unique letters, but missing start letter R and carrying a stray X;
+    // marking this authoritative would let X slip past validation via the union.
+    expect(isCompleteLetterSet("DGNOUIX", ["D", "G", "N", "O", "R"])).toBe(
+      false
+    );
+  });
+
+  it("rejects a set with fewer than seven letters", () => {
+    expect(isCompleteLetterSet("DGNOR", ["D", "G", "N", "O", "R"])).toBe(false);
+  });
+
+  it("ignores separators and duplicates when checking", () => {
+    expect(isCompleteLetterSet("d-g n o r u i", ["D", "R"])).toBe(true);
   });
 });
 

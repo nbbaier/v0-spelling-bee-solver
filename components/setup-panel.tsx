@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { parseLocalDate, SAMPLE_ID } from "@/lib/keys";
-import { normalizeLetterSet } from "@/lib/letters";
+import { isCompleteLetterSet, normalizeLetterSet } from "@/lib/letters";
 import { parseHints, parseMatrix } from "@/lib/parse";
 import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import {
@@ -236,12 +236,14 @@ export function SetupPanel({
     }
   }, [matrixText]);
 
-  // Canonical form of the entered set, and whether it holds all seven letters.
+  // Canonical form of the entered set, and whether it's authoritative: all seven
+  // letters AND every grid start letter (so allowedLetters' union stays a no-op;
+  // see lib/letters.ts → isCompleteLetterSet).
   const normalizedLetterSet = useMemo(
     () => normalizeLetterSet(letterSet),
     [letterSet]
   );
-  const letterSetComplete = normalizedLetterSet.length === 7;
+  const letterSetComplete = isCompleteLetterSet(letterSet, parsedLetters);
   // The center letter must be one of the puzzle's letters, so offer the full
   // set when known; fall back to the grid's start letters until it is.
   const centerLetterOptions = useMemo(
