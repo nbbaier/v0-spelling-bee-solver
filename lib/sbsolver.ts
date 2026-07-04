@@ -25,6 +25,8 @@ const CENTER_ALT_RE = /^center letter ([A-Za-z])$/;
 // The #string input capitalizes the center letter (e.g. "Rdginow"); first
 // uppercase letter is the center.
 const FIRST_UPPERCASE_RE = /[A-Z]/;
+// Every letter in the #string input value.
+const LETTER_RE = /[A-Za-z]/g;
 
 export interface ScrapeResult {
   // The puzzle's center letter (uppercase), or null if it couldn't be found.
@@ -34,6 +36,9 @@ export interface ScrapeResult {
   // 2-letter prefixes whose 3-letter page failed to fetch/parse.
   failedPrefixes: string[];
   hintsText: string;
+  // The puzzle's authoritative 7-letter set (uppercase, deduped), or "" if the
+  // #string input couldn't be read. See CONTEXT.md → Letter set.
+  letterSet: string;
   matrixText: string;
 }
 
@@ -190,6 +195,28 @@ function parseCenterLetter(root: Root): string | null {
   return m ? m[0] : null;
 }
 
+// The puzzle's full letter set is the #string input value (e.g. "Rdginow"),
+// which lists all seven letters with the center capitalized. We take every
+// letter, uppercase it, and drop duplicates while preserving order. Returns ""
+// when the input is absent so callers can treat it as "unknown".
+export function parseLetterSet(root: Root): string {
+  const value = root.querySelector("input#string")?.getAttribute("value") ?? "";
+  const letters = value.match(LETTER_RE);
+  if (!letters) {
+    return "";
+  }
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const ch of letters) {
+    const upper = ch.toUpperCase();
+    if (!seen.has(upper)) {
+      seen.add(upper);
+      result.push(upper);
+    }
+  }
+  return result.join("");
+}
+
 // Fetch every prefix page with a bounded concurrency pool, preserving page order.
 async function crawlThreeLetter(
   links: { prefix: string; url: string }[]
@@ -236,6 +263,7 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
   const matrixText = parseMatrixTable(root);
   const date = parseDate(root);
   const centerLetter = parseCenterLetter(root);
+  const letterSet = parseLetterSet(root);
   const links = parsePrefixLinks(root);
 
   if (links.length === 0) {
@@ -250,5 +278,12 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
     );
   }
 
-  return { matrixText, hintsText, date, centerLetter, failedPrefixes };
+  return {
+    matrixText,
+    hintsText,
+    date,
+    centerLetter,
+    letterSet,
+    failedPrefixes,
+  };
 }

@@ -14,6 +14,11 @@ export interface MatrixData {
   grid: Record<string, Record<number, number>>;
   // Sorted ascending list of word lengths (column headers)
   lengths: number[];
+  // The puzzle's authoritative letter set: all 7 letters, uppercase, with no
+  // separators (e.g. "RDGINOW"). Sourced from sbsolver's `#string` input. May be
+  // empty for a hand-pasted puzzle whose set the user hasn't confirmed, or for a
+  // row persisted before this field existed. See CONTEXT.md → Letter set.
+  letterSet: string;
   // Uppercase row labels of the grid: the start letters of answers (each is the
   // first letter of at least one answer). NOT the puzzle's authoritative
   // 7-letter set — a puzzle letter that begins no answer never appears here.

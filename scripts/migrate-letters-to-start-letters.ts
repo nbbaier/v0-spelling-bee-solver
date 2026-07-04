@@ -61,6 +61,8 @@ async function migrateDate(date: string): Promise<Outcome> {
   const parsed = parseMatrix(scrape.matrixText);
   const matrix: MatrixData = {
     centerLetter: existing?.centerLetter ?? scrape.centerLetter ?? null,
+    // Refetching lets us populate the authoritative set for older rows too.
+    letterSet: existing?.letterSet ?? scrape.letterSet,
     grid: parsed.grid,
     lengths: parsed.lengths,
     startLetters: parsed.startLetters,

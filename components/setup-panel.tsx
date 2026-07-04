@@ -12,11 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { parseLocalDate, SAMPLE_ID } from "@/lib/keys";
+import { normalizeLetterSet } from "@/lib/letters";
 import { parseHints, parseMatrix } from "@/lib/parse";
 import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import {
   SAMPLE_CENTER_LETTER,
   SAMPLE_HINTS,
+  SAMPLE_LETTER_SET,
   SAMPLE_MATRIX,
 } from "@/lib/sample";
 import type { HintSlot, MatrixData } from "@/lib/types";
@@ -109,6 +111,43 @@ function CenterLetterPicker({
   );
 }
 
+// The puzzle's full 7-letter set. sbsolver supplies all seven; a hand-pasted
+// grid only reveals the letters that begin an answer, so the user must confirm
+// the rest (letters used only mid-word are otherwise lost — the #19 regression).
+function LetterSetInput({
+  value,
+  onChange,
+  complete,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  complete: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="letter-set">Letter set</Label>
+      <Input
+        autoCapitalize="characters"
+        className="font-mono text-base uppercase md:text-sm"
+        id="letter-set"
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="RDGINOW"
+        value={value}
+      />
+      {complete ? (
+        <p className="text-muted-foreground text-xs">
+          All seven puzzle letters. Fetched from sbsolver automatically.
+        </p>
+      ) : (
+        <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
+          Confirm all 7 puzzle letters. A pasted grid only lists letters that
+          begin an answer, so add any that appear only in the middle of a word.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Inline status under the date picker: a fetch error, a "saved under another
 // date" note, or a partial-3-letter-hints warning.
 function FetchStatusMessages({
@@ -169,6 +208,9 @@ export function SetupPanel({
   const [hintsText, setHintsText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [centerLetter, setCenterLetter] = useState<string | null>(null);
+  // The puzzle's 7-letter set. Filled from a scrape, or seeded from the pasted
+  // grid's start letters for the user to complete (see the effect below).
+  const [letterSet, setLetterSet] = useState("");
 
   // URL-fetch state.
   const [url, setUrl] = useState("");
@@ -194,6 +236,31 @@ export function SetupPanel({
     }
   }, [matrixText]);
 
+  // Canonical form of the entered set, and whether it holds all seven letters.
+  const normalizedLetterSet = useMemo(
+    () => normalizeLetterSet(letterSet),
+    [letterSet]
+  );
+  const letterSetComplete = normalizedLetterSet.length === 7;
+  // The center letter must be one of the puzzle's letters, so offer the full
+  // set when known; fall back to the grid's start letters until it is.
+  const centerLetterOptions = useMemo(
+    () =>
+      normalizedLetterSet.length > 0
+        ? normalizedLetterSet.split("")
+        : parsedLetters,
+    [normalizedLetterSet, parsedLetters]
+  );
+
+  // Seed the letter-set field from a hand-pasted grid's start letters so the
+  // user has a starting point to confirm/complete. Only seeds when empty, so a
+  // scraped set (already all seven) and the user's own edits are never clobbered.
+  useEffect(() => {
+    if (letterSet.length === 0 && parsedLetters.length > 0) {
+      setLetterSet(parsedLetters.join(""));
+    }
+  }, [parsedLetters, letterSet]);
+
   // Dates with a saved puzzle, as Date objects for the picker's indicators.
   const datesWithData = useMemo(() => dates.map(parseLocalDate), [dates]);
 
@@ -217,6 +284,7 @@ export function SetupPanel({
       setFetchedDate(targetDate);
       setFailedPrefixes(result.failedPrefixes);
       setCenterLetter(result.centerLetter);
+      setLetterSet(result.letterSet);
     },
     []
   );
@@ -309,7 +377,13 @@ export function SetupPanel({
         const { startLetters, lengths, grid } = parseMatrix(SAMPLE_MATRIX);
         const hints = parseHints(SAMPLE_HINTS);
         onLoad(
-          { centerLetter: SAMPLE_CENTER_LETTER, startLetters, lengths, grid },
+          {
+            centerLetter: SAMPLE_CENTER_LETTER,
+            letterSet: SAMPLE_LETTER_SET,
+            startLetters,
+            lengths,
+            grid,
+          },
           hints,
           SAMPLE_ID
         );
@@ -324,7 +398,13 @@ export function SetupPanel({
       const { startLetters, lengths, grid } = parseMatrix(matrixText);
       const hints = parseHints(hintsText);
       onLoad(
-        { centerLetter, startLetters, lengths, grid },
+        {
+          centerLetter,
+          letterSet: normalizedLetterSet,
+          startLetters,
+          lengths,
+          grid,
+        },
         hints,
         fetchedDate ?? date
       );
@@ -490,8 +570,14 @@ export function SetupPanel({
                 </p>
               </div>
 
+              <LetterSetInput
+                complete={letterSetComplete}
+                onChange={setLetterSet}
+                value={letterSet}
+              />
+
               <CenterLetterPicker
-                letters={parsedLetters}
+                letters={centerLetterOptions}
                 onChange={setCenterLetter}
                 value={centerLetter}
               />
