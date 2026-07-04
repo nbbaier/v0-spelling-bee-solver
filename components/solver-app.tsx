@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { usePuzzle } from "@/hooks/use-puzzle";
 import { derive } from "@/lib/derive";
 import { isSampleId, parseLocalDate, toLocalISO } from "@/lib/keys";
+import { allowedLetters } from "@/lib/letters";
 import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
@@ -196,7 +197,7 @@ export function SolverApp() {
           </div>
           <div className="space-y-4">
             <HintsList
-              allowedLetters={puzzle.startLetters}
+              allowedLetters={allowedLetters(puzzle)}
               availableLengthsByLetter={availableLengthsByLetter}
               centerLetter={puzzle.centerLetter}
               hints={puzzle.hints}

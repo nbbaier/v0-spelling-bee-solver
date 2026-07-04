@@ -10,6 +10,7 @@ function makePuzzle(words: (string | null)[]): Puzzle {
   return {
     date: "2024-01-01",
     centerLetter: "O",
+    letterSet: "DGNORUI",
     startLetters: ["D", "O"],
     lengths: [4, 5],
     grid: { D: { 4: 2, 5: 1 }, O: { 4: 1 } },

@@ -4,6 +4,11 @@
 
 export const SAMPLE_CENTER_LETTER = "O";
 
+// All seven letters of the sample puzzle (center O included). The grid only
+// lists start letters D/G/N/O/R, but the answers also use U and I mid-word
+// (e.g. DUN, RID), so those belong to the set even though they begin no row.
+export const SAMPLE_LETTER_SET = "DGNORUI";
+
 export const SAMPLE_MATRIX = [
   "\t4\t5\t6\t7\tΣ",
   "D\t2\t3\t1\t1\t7",

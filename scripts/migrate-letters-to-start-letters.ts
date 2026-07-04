@@ -1,18 +1,24 @@
 /**
- * One-time migration: persisted matrices `letters` -> `startLetters`.
+ * One-time migration: rebuild persisted matrices under the current shape,
+ * backfilling `startLetters` (renamed from `letters`) and `letterSet`.
  *
- * Puzzles saved before this rename stored their grid row labels under
+ * Puzzles saved before the rename stored their grid row labels under
  * `MatrixData.letters`; the field is now `startLetters` (see lib/types.ts).
- * Rather than rewrite the key blindly, this refetches each saved puzzle from
- * sbsolver and rebuilds the matrix with the current parser, so the stored data
- * is regenerated under the new field name from the authoritative source.
+ * Puzzles saved before the letterSet slice have no `letterSet` at all, so on
+ * read it defaults to "" and word validation falls back to `startLetters` —
+ * missing the #19 fix. Rather than rewrite the key blindly, this refetches each
+ * saved puzzle from sbsolver and rebuilds the matrix with the current parser, so
+ * the stored data is regenerated under both fields from the authoritative source
+ * (sbsolver's `#string` supplies the full seven-letter set).
  *
  * Entered words (sbs:<date>:words) and hint prefix slots (sbs:<date>:prefixes)
  * are never touched, so user progress and slot ids are preserved. Only the
- * matrix key is rewritten. A puzzle's existing center letter is kept (it may
- * have been set manually), falling back to the scrape only when none is stored.
+ * matrix key is rewritten. A puzzle's existing center letter and letter set are
+ * kept (either may have been set/confirmed manually), falling back to the scrape
+ * only when none is stored.
  *
- * Idempotent: a matrix that already has `startLetters` is skipped.
+ * Idempotent: a matrix that already has both `startLetters` and a non-empty
+ * `letterSet` is skipped.
  *
  * Run:  pnpm migrate:start-letters
  * Needs KV_REST_API_URL / KV_REST_API_TOKEN (loaded from .env.local).
@@ -36,8 +42,22 @@ type Outcome =
 async function migrateDate(date: string): Promise<Outcome> {
   const existing = await redis.get<StoredMatrix>(keys.matrix(date));
 
-  if (existing && Array.isArray(existing.startLetters)) {
-    return { date, status: "skipped", reason: "already has startLetters" };
+  // Skip only rows that already carry BOTH fields. A row with startLetters but
+  // no letterSet — saved after the earlier rename, or written by a prior run of
+  // this script before letterSet existed — still needs the authoritative set
+  // backfilled, so it must not short-circuit here (otherwise the #19 fix never
+  // reaches already-saved puzzles).
+  if (
+    existing &&
+    Array.isArray(existing.startLetters) &&
+    typeof existing.letterSet === "string" &&
+    existing.letterSet.length > 0
+  ) {
+    return {
+      date,
+      status: "skipped",
+      reason: "already has startLetters and letterSet",
+    };
   }
 
   const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(date)}`;
@@ -61,6 +81,10 @@ async function migrateDate(date: string): Promise<Outcome> {
   const parsed = parseMatrix(scrape.matrixText);
   const matrix: MatrixData = {
     centerLetter: existing?.centerLetter ?? scrape.centerLetter ?? null,
+    // Keep a set that's already stored (e.g. a hand-confirmed one); otherwise
+    // take the fresh scrape. `||` (not `??`) so a stored empty string, which
+    // means "unknown", also falls through to the scrape.
+    letterSet: existing?.letterSet || scrape.letterSet,
     grid: parsed.grid,
     lengths: parsed.lengths,
     startLetters: parsed.startLetters,

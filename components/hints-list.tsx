@@ -19,17 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
+import { hasOnlyAllowedLetters } from "@/lib/letters";
 import type { HintSlot } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-// Returns true if every character in word is in the allowed set.
-function hasOnlyAllowedLetters(word: string, allowed: string[]): boolean {
-  const set = new Set(allowed.map((l) => l.toUpperCase()));
-  return word
-    .toUpperCase()
-    .split("")
-    .every((ch) => set.has(ch));
-}
 
 function SlotInput({
   slot,

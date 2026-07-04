@@ -18,6 +18,7 @@ export type FetchPuzzleResult =
   | {
       ok: true;
       centerLetter: string | null;
+      letterSet: string;
       matrixText: string;
       hintsText: string;
       date: string | null;
@@ -27,14 +28,21 @@ export type FetchPuzzleResult =
 
 async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
   try {
-    const { matrixText, hintsText, date, centerLetter, failedPrefixes } =
-      await scrapePuzzle(url);
+    const {
+      matrixText,
+      hintsText,
+      date,
+      centerLetter,
+      letterSet,
+      failedPrefixes,
+    } = await scrapePuzzle(url);
     return {
       ok: true,
       matrixText,
       hintsText,
       date,
       centerLetter,
+      letterSet,
       failedPrefixes,
     };
   } catch (e) {
