@@ -47,9 +47,10 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.34.4",
-  "pnpm": {
-    "overrides": {
-      "hono": "4.12.25"
-    }
-  }
+  "overrides": {
+    "hono": "4.12.25"
+  },
+  "workspaces": [
+    "."
+  ]
 }
