@@ -70,19 +70,6 @@ function CenterLetterPicker({
     <div className="space-y-2">
       <Label>Center letter</Label>
       <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          aria-pressed={value === null}
-          className={cn(
-            "rounded-full px-2.5 py-0.5 font-medium text-xs transition-colors",
-            value === null
-              ? "bg-muted text-muted-foreground"
-              : "text-muted-foreground hover:bg-muted/60"
-          )}
-          onClick={() => onChange(null)}
-          type="button"
-        >
-          Unknown
-        </button>
         {letters.map((l) => {
           const selected = value === l;
           return (
