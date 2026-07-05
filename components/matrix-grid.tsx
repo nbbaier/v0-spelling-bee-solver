@@ -1,6 +1,7 @@
 "use client";
 
 import type { Derived } from "@/lib/derive";
+import { normalizeLetterSet } from "@/lib/letters";
 import type { Puzzle } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,61 @@ function Cell({
   );
 }
 
+function MatrixFooter({
+  centerLetter,
+  letterSet,
+}: {
+  centerLetter: string | null;
+  letterSet: string[];
+}) {
+  if (letterSet.length > 0) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 text-muted-foreground text-xs">
+        <span>Letters:</span>
+        <span className="flex flex-wrap items-center gap-1">
+          {letterSet.map((letter) => {
+            const isCenter = letter === centerLetter;
+            return (
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+                  isCenter
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                )}
+                key={letter}
+                title={isCenter ? "Center letter" : undefined}
+              >
+                {letter}
+                {isCenter ? (
+                  <span className="sr-only"> center letter</span>
+                ) : null}
+              </span>
+            );
+          })}
+        </span>
+      </div>
+    );
+  }
+
+  if (!centerLetter) {
+    return null;
+  }
+
+  return (
+    <p className="flex items-center gap-1.5 px-3 py-2 text-muted-foreground text-xs">
+      <span
+        aria-hidden="true"
+        className="inline-block size-1.5 rounded-full bg-primary"
+      />
+      Center letter:
+      <span className="font-mono font-semibold text-foreground">
+        {centerLetter}
+      </span>
+    </p>
+  );
+}
+
 export function MatrixGrid({
   puzzle,
   derived,
@@ -48,6 +104,7 @@ export function MatrixGrid({
     foundWords,
     totalWords,
   } = derived;
+  const letterSet = normalizeLetterSet(puzzle.letterSet).split("");
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
@@ -128,18 +185,7 @@ export function MatrixGrid({
           </tr>
         </tbody>
       </table>
-      {centerLetter && (
-        <p className="flex items-center gap-1.5 px-3 py-2 text-muted-foreground text-xs">
-          <span
-            aria-hidden="true"
-            className="inline-block size-1.5 rounded-full bg-primary"
-          />
-          Center letter:
-          <span className="font-mono font-semibold text-foreground">
-            {centerLetter}
-          </span>
-        </p>
-      )}
+      <MatrixFooter centerLetter={centerLetter} letterSet={letterSet} />
     </div>
   );
 }
