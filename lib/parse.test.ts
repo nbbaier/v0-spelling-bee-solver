@@ -31,6 +31,13 @@ describe("parseMatrix", () => {
     expect(result.grid).toEqual({ A: { 4: 1, 5: 2 } });
   });
 
+  it("preserves matrix row order from the source table", () => {
+    const raw = ["\t4", "B\t1", "A\t2"].join("\n");
+    const result = parseMatrix(raw);
+
+    expect(result.startLetters).toEqual(["B", "A"]);
+  });
+
   it("treats empty cells as zero and omits them from the grid", () => {
     const raw = ["\t4\t5", "D\t\t2"].join("\n");
     const result = parseMatrix(raw);

@@ -14,7 +14,7 @@ import { parse } from "node-html-parser";
 const ALLOWED_HOST = "www.sbsolver.com";
 const POOL_SIZE = 5;
 
-const PUZZLE_PATH_RE = /^\/(?:nt|n)\/([A-Za-z0-9]+)/;
+const PUZZLE_PATH_RE = /^\/(?:nt|n|s)\/([A-Za-z0-9]+)/;
 // sbsolver prefix links now carry an optional puzzle-number segment, e.g.
 // "/nt/Rdginow/2965/do#3ltr"; older pages used "/nt/Rdginow/do". Accept both.
 const PREFIX_HREF_RE = /\/nt\/[A-Za-z]+(?:\/\d+)?\/([a-z]{2})(?:[#?].*)?$/;
@@ -85,7 +85,7 @@ function validateUrl(raw: string): URL {
   const m = u.pathname.match(PUZZLE_PATH_RE);
   if (!m) {
     throw new Error(
-      "That's not a sbsolver puzzle page (expected a /nt/… or /n/… URL)."
+      "That's not a sbsolver puzzle page (expected a /s/…, /nt/…, or /n/… URL)."
     );
   }
   u.protocol = "https:";
@@ -129,7 +129,10 @@ function parseMatrixTable(root: Root): string {
 }
 
 // Collect the 2-letter prefix pages to crawl, in page order, deduped.
-function parsePrefixLinks(root: Root): { prefix: string; url: string }[] {
+function parsePrefixLinks(
+  root: Root,
+  baseUrl: string
+): { prefix: string; url: string }[] {
   const seen = new Set<string>();
   const links: { prefix: string; url: string }[] = [];
   for (const a of root.querySelectorAll("td.bee-two a")) {
@@ -146,7 +149,10 @@ function parsePrefixLinks(root: Root): { prefix: string; url: string }[] {
       continue;
     }
     seen.add(prefix);
-    links.push({ prefix, url: href.split("#")[0] });
+    links.push({
+      prefix,
+      url: new URL(href.split("#")[0], baseUrl).toString(),
+    });
   }
   return links;
 }
@@ -264,7 +270,7 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
   const date = parseDate(root);
   const centerLetter = parseCenterLetter(root);
   const letterSet = parseLetterSet(root);
-  const links = parsePrefixLinks(root);
+  const links = parsePrefixLinks(root, url.toString());
 
   if (links.length === 0) {
     throw new Error("Couldn't find the 2-letter hint list on that page.");

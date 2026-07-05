@@ -120,8 +120,6 @@ export function parseMatrix(raw: string): MatrixParseResult {
     );
   }
 
-  startLetters.sort();
-
   return { centerLetter: null, startLetters, lengths: uniqueLengths, grid };
 }
 
