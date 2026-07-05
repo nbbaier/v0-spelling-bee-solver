@@ -35,9 +35,9 @@ pnpm migrate:start-letters
 ```
 
 Needs `KV_REST_API_URL` / `KV_REST_API_TOKEN` (loaded from `.env.local`). It
-refetches each saved puzzle from sbsolver and rewrites only the matrix key —
-entered words and hint slots are preserved, so it's safe to run on data with
-progress. It is idempotent (matrices that already have both `startLetters` and a
-non-empty `letterSet` are skipped) and per environment: run it against each KV
-store that has its own saved data (production, preview, local) using that
-environment's credentials.
+refetches each saved puzzle from sbsolver and rewrites only the matrix key when
+the rebuilt matrix differs — entered words and hint slots are preserved, so it's
+safe to run on data with progress. It is idempotent: already-current matrices
+are skipped after comparison, rather than just because fields are present. Run
+it against each KV store that has its own saved data (production, preview,
+local) using that environment's credentials.

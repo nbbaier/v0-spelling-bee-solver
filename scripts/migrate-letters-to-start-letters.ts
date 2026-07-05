@@ -13,12 +13,12 @@
  *
  * Entered words (sbs:<date>:words) and hint prefix slots (sbs:<date>:prefixes)
  * are never touched, so user progress and slot ids are preserved. Only the
- * matrix key is rewritten. A puzzle's existing center letter and letter set are
- * kept (either may have been set/confirmed manually), falling back to the scrape
- * only when none is stored.
+ * matrix key is rewritten. The scrape is authoritative for the center letter
+ * and letter set when it can read them; otherwise the script preserves any
+ * existing stored values.
  *
- * Idempotent: a matrix that already has both `startLetters` and a non-empty
- * `letterSet` is skipped.
+ * Idempotent: the script compares the rebuilt matrix to the stored one and
+ * skips rows that already match the current scraper/parser output.
  *
  * Run:  pnpm migrate:start-letters
  * Needs KV_REST_API_URL / KV_REST_API_TOKEN (loaded from .env.local).
@@ -39,26 +39,50 @@ type Outcome =
   | { date: string; status: "skipped"; reason: string }
   | { date: string; status: "failed"; reason: string };
 
+function sameArray<T>(a: T[] | undefined, b: T[]): boolean {
+  return Boolean(a && a.length === b.length && a.every((v, i) => v === b[i]));
+}
+
+function sameGrid(
+  a: Record<string, Record<number, number>> | undefined,
+  b: Record<string, Record<number, number>>
+): boolean {
+  if (!a) {
+    return false;
+  }
+  const aLetters = Object.keys(a).sort();
+  const bLetters = Object.keys(b).sort();
+  if (!sameArray(aLetters, bLetters)) {
+    return false;
+  }
+  for (const letter of bLetters) {
+    const aLengths = Object.keys(a[letter] ?? {}).sort();
+    const bLengths = Object.keys(b[letter] ?? {}).sort();
+    if (!sameArray(aLengths, bLengths)) {
+      return false;
+    }
+    for (const length of bLengths) {
+      if (a[letter]?.[Number(length)] !== b[letter]?.[Number(length)]) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function sameMatrix(existing: StoredMatrix | null, next: MatrixData): boolean {
+  return Boolean(
+    existing &&
+      existing.centerLetter === next.centerLetter &&
+      existing.letterSet === next.letterSet &&
+      sameArray(existing.lengths, next.lengths) &&
+      sameArray(existing.startLetters, next.startLetters) &&
+      sameGrid(existing.grid, next.grid)
+  );
+}
+
 async function migrateDate(date: string): Promise<Outcome> {
   const existing = await redis.get<StoredMatrix>(keys.matrix(date));
-
-  // Skip only rows that already carry BOTH fields. A row with startLetters but
-  // no letterSet — saved after the earlier rename, or written by a prior run of
-  // this script before letterSet existed — still needs the authoritative set
-  // backfilled, so it must not short-circuit here (otherwise the #19 fix never
-  // reaches already-saved puzzles).
-  if (
-    existing &&
-    Array.isArray(existing.startLetters) &&
-    typeof existing.letterSet === "string" &&
-    existing.letterSet.length > 0
-  ) {
-    return {
-      date,
-      status: "skipped",
-      reason: "already has startLetters and letterSet",
-    };
-  }
 
   const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(date)}`;
   const scrape = await scrapePuzzle(url);
@@ -80,15 +104,22 @@ async function migrateDate(date: string): Promise<Outcome> {
 
   const parsed = parseMatrix(scrape.matrixText);
   const matrix: MatrixData = {
-    centerLetter: existing?.centerLetter ?? scrape.centerLetter ?? null,
-    // Keep a set that's already stored (e.g. a hand-confirmed one); otherwise
-    // take the fresh scrape. `||` (not `??`) so a stored empty string, which
-    // means "unknown", also falls through to the scrape.
-    letterSet: existing?.letterSet || scrape.letterSet,
+    centerLetter: scrape.centerLetter ?? existing?.centerLetter ?? null,
+    // Prefer the fresh scrape because it reflects the current extraction rules.
+    // Fall back to a stored value only if the page shape stops exposing the set.
+    letterSet: scrape.letterSet || existing?.letterSet || "",
     grid: parsed.grid,
     lengths: parsed.lengths,
     startLetters: parsed.startLetters,
   };
+
+  if (sameMatrix(existing, matrix)) {
+    return {
+      date,
+      status: "skipped",
+      reason: "already matches current scrape",
+    };
+  }
 
   await redis.set(keys.matrix(date), matrix);
   return { date, status: "migrated" };
