@@ -40,6 +40,9 @@ export interface ScrapeResult {
   // #string input couldn't be read. See CONTEXT.md → Letter set.
   letterSet: string;
   matrixText: string;
+  // Number of pangrams stated in the page's stats block, or null if it
+  // couldn't be found. See CONTEXT.md → Pangram.
+  pangramCount: number | null;
 }
 
 const MONTHS: Record<string, number> = {
@@ -223,6 +226,20 @@ export function parseLetterSet(root: Root): string {
   return result.join("");
 }
 
+// The stats block renders "<b>pangrams:</b> 3<br>". Find the <b> whose
+// cleaned text is exactly "pangrams:" and parse the integer from the text that
+// follows it. Returns null when absent/unreadable so callers treat it as unknown.
+export function parsePangramCount(root: Root): number | null {
+  for (const b of root.querySelectorAll("b")) {
+    if (clean(b.text) !== "pangrams:") {
+      continue;
+    }
+    const count = Number.parseInt(clean(b.nextSibling?.rawText ?? ""), 10);
+    return Number.isFinite(count) ? count : null;
+  }
+  return null;
+}
+
 // Fetch every prefix page with a bounded concurrency pool, preserving page order.
 async function crawlThreeLetter(
   links: { prefix: string; url: string }[]
@@ -270,6 +287,7 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
   const date = parseDate(root);
   const centerLetter = parseCenterLetter(root);
   const letterSet = parseLetterSet(root);
+  const pangramCount = parsePangramCount(root);
   const links = parsePrefixLinks(root, url.toString());
 
   if (links.length === 0) {
@@ -290,6 +308,7 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
     date,
     centerLetter,
     letterSet,
+    pangramCount,
     failedPrefixes,
   };
 }

@@ -20,6 +20,7 @@ import {
   SAMPLE_HINTS,
   SAMPLE_LETTER_SET,
   SAMPLE_MATRIX,
+  SAMPLE_PANGRAM_COUNT,
 } from "@/lib/sample";
 import type { HintSlot, MatrixData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -198,6 +199,9 @@ export function SetupPanel({
   // The puzzle's 7-letter set. Filled from a scrape, or seeded from the pasted
   // grid's start letters for the user to complete (see the effect below).
   const [letterSet, setLetterSet] = useState("");
+  // The puzzle's pangram count. Only a scrape supplies it; a hand-pasted
+  // puzzle's count stays null (unknown).
+  const [pangramCount, setPangramCount] = useState<number | null>(null);
 
   // URL-fetch state.
   const [url, setUrl] = useState("");
@@ -274,6 +278,7 @@ export function SetupPanel({
       setFailedPrefixes(result.failedPrefixes);
       setCenterLetter(result.centerLetter);
       setLetterSet(result.letterSet);
+      setPangramCount(result.pangramCount);
     },
     []
   );
@@ -369,6 +374,7 @@ export function SetupPanel({
           {
             centerLetter: SAMPLE_CENTER_LETTER,
             letterSet: SAMPLE_LETTER_SET,
+            pangramCount: SAMPLE_PANGRAM_COUNT,
             startLetters,
             lengths,
             grid,
@@ -394,6 +400,7 @@ export function SetupPanel({
           // trusts it as authoritative; validation then falls back to the grid's
           // start letters. See lib/letters.ts → allowedLetters.
           letterSet: letterSetComplete ? normalizedLetterSet : "",
+          pangramCount,
           startLetters,
           lengths,
           grid,

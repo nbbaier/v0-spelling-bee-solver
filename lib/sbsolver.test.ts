@@ -1,7 +1,7 @@
 import { parse } from "node-html-parser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseMatrix } from "./parse";
-import { parseLetterSet, scrapePuzzle } from "./sbsolver";
+import { parseLetterSet, parsePangramCount, scrapePuzzle } from "./sbsolver";
 
 // The #string input on a sbsolver puzzle page lists all seven puzzle letters
 // with the center capitalized (e.g. "Rdginow"). parseLetterSet is the fix for
@@ -40,6 +40,9 @@ function puzzleHtml({
       <body>
         <input id="string" value="${value}" />
         <img alt="center letter ${center}" />
+        <b>words:</b> 55<br>
+        <b>pangrams:</b> 3<br>
+        <b>perfect:</b> 1<br>
         <table class="bee bee-grid">
           <tr class="bee">
             <td class="bee-top bee-left">&nbsp;</td>
@@ -87,6 +90,32 @@ describe("parseLetterSet", () => {
     const root = parse("<form><input id='other' value='x' /></form>");
 
     expect(parseLetterSet(root)).toBe("");
+  });
+});
+
+describe("parsePangramCount", () => {
+  it("parses the count from the stats block", () => {
+    const root = parse("<b>words:</b> 55<br><b>pangrams:</b> 3<br>");
+
+    expect(parsePangramCount(root)).toBe(3);
+  });
+
+  it("tolerates extra whitespace and &nbsp; around the number", () => {
+    const root = parse("<b>pangrams:&nbsp;</b> &nbsp; 12 <br>");
+
+    expect(parsePangramCount(root)).toBe(12);
+  });
+
+  it("returns null when the page has no pangrams element", () => {
+    const root = parse("<b>words:</b> 55<br>");
+
+    expect(parsePangramCount(root)).toBeNull();
+  });
+
+  it("returns null when the trailing text is not a number", () => {
+    const root = parse("<b>pangrams:</b> lots<br>");
+
+    expect(parsePangramCount(root)).toBeNull();
   });
 });
 
@@ -140,6 +169,7 @@ describe("scrapePuzzle", () => {
     );
     expect(result.letterSet).toBe(value.toUpperCase());
     expect(result.centerLetter).toBe(center);
+    expect(result.pangramCount).toBe(3);
     expect(matrix.startLetters).toEqual(rows);
     expect(result.hintsText).toBe("BAT x1");
   });

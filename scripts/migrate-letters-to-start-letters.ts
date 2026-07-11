@@ -108,6 +108,8 @@ async function migrateDate(date: string): Promise<Outcome> {
     // Prefer the fresh scrape because it reflects the current extraction rules.
     // Fall back to a stored value only if the page shape stops exposing the set.
     letterSet: scrape.letterSet || existing?.letterSet || "",
+    // Preserve whatever is stored; scraping the count into old rows is #25.
+    pangramCount: existing?.pangramCount ?? null,
     grid: parsed.grid,
     lengths: parsed.lengths,
     startLetters: parsed.startLetters,
