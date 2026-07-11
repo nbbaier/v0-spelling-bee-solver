@@ -9,6 +9,9 @@ export const SAMPLE_CENTER_LETTER = "O";
 // (e.g. DUN, RID), so those belong to the set even though they begin no row.
 export const SAMPLE_LETTER_SET = "DGNORUI";
 
+// Dummy pangram count — its purpose is exercising the footer display.
+export const SAMPLE_PANGRAM_COUNT = 1;
+
 export const SAMPLE_MATRIX = [
   "\t4\t5\t6\t7\tΣ",
   "D\t2\t3\t1\t1\t7",

@@ -22,6 +22,7 @@ export type FetchPuzzleResult =
       matrixText: string;
       hintsText: string;
       date: string | null;
+      pangramCount: number | null;
       failedPrefixes: string[];
     }
   | { ok: false; error: string };
@@ -34,6 +35,7 @@ async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
       date,
       centerLetter,
       letterSet,
+      pangramCount,
       failedPrefixes,
     } = await scrapePuzzle(url);
     return {
@@ -43,6 +45,7 @@ async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
       date,
       centerLetter,
       letterSet,
+      pangramCount,
       failedPrefixes,
     };
   } catch (e) {

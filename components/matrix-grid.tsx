@@ -31,12 +31,27 @@ function Cell({
   );
 }
 
+// "· 3 pangrams" (singular "1 pangram") after the letter pills; nothing when
+// the count is unknown (null).
+function PangramNote({ pangramCount }: { pangramCount: number | null }) {
+  if (pangramCount === null) {
+    return null;
+  }
+  return (
+    <span>
+      · {pangramCount} {pangramCount === 1 ? "pangram" : "pangrams"}
+    </span>
+  );
+}
+
 function MatrixFooter({
   centerLetter,
   letterSet,
+  pangramCount,
 }: {
   centerLetter: string | null;
   letterSet: string[];
+  pangramCount: number | null;
 }) {
   if (letterSet.length > 0) {
     return (
@@ -64,6 +79,7 @@ function MatrixFooter({
             );
           })}
         </span>
+        <PangramNote pangramCount={pangramCount} />
       </div>
     );
   }
@@ -185,7 +201,11 @@ export function MatrixGrid({
           </tr>
         </tbody>
       </table>
-      <MatrixFooter centerLetter={centerLetter} letterSet={letterSet} />
+      <MatrixFooter
+        centerLetter={centerLetter}
+        letterSet={letterSet}
+        pangramCount={puzzle.pangramCount}
+      />
     </div>
   );
 }

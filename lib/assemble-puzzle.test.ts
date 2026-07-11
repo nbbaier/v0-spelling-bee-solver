@@ -10,6 +10,7 @@ const PREFIXES: HintSlot[] = [
 const NEW_MATRIX: StoredMatrix = {
   centerLetter: "O",
   letterSet: "DOXY",
+  pangramCount: 3,
   grid: { D: { 4: 2 }, O: { 4: 1 } },
   lengths: [4],
   startLetters: ["D", "O"],
@@ -23,6 +24,7 @@ describe("assemblePuzzle", () => {
 
     expect(puzzle.startLetters).toEqual(["D", "O"]);
     expect(puzzle.letterSet).toBe("DOXY");
+    expect(puzzle.pangramCount).toBe(3);
     expect(puzzle.centerLetter).toBe("O");
     expect(puzzle.lengths).toEqual([4]);
     expect(puzzle.grid).toEqual(NEW_MATRIX.grid);
@@ -48,6 +50,8 @@ describe("assemblePuzzle", () => {
     // A pre-letterSet row has no set; it defaults to "" (validation then falls
     // back to startLetters).
     expect(puzzle.letterSet).toBe("");
+    // A pre-pangramCount row has no count; it defaults to null (unknown).
+    expect(puzzle.pangramCount).toBeNull();
   });
 
   it("yields empty startLetters rather than undefined when both fields are absent", () => {

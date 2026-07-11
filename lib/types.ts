@@ -19,6 +19,10 @@ export interface MatrixData {
   // empty for a hand-pasted puzzle whose set the user hasn't confirmed, or for a
   // row persisted before this field existed. See CONTEXT.md → Letter set.
   letterSet: string;
+  // Number of pangrams (answers using all seven letters), or null when unknown
+  // (hand-pasted puzzle, or a row saved before this field existed). A static
+  // property of the puzzle definition. See CONTEXT.md → Pangram.
+  pangramCount: number | null;
   // Uppercase row labels of the grid: the start letters of answers (each is the
   // first letter of at least one answer). NOT the puzzle's authoritative
   // 7-letter set — a puzzle letter that begins no answer never appears here.
