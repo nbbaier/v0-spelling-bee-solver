@@ -1,9 +1,7 @@
 "use client";
-import {
-  Cancel01Icon,
-  Delete02Icon,
-  ViewOffIcon,
-} from "@hugeicons/core-free-icons";
+import Cancel01Icon from "@hugeicons/core-free-icons/Cancel01Icon";
+import Delete02Icon from "@hugeicons/core-free-icons/Delete02Icon";
+import ViewOffIcon from "@hugeicons/core-free-icons/ViewOffIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -188,7 +186,14 @@ export function HintsList({
       arr.push(slot);
       map.set(slot.prefix, arr);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([prefix, groupSlots]): [string, HintSlot[]] => [
+        prefix,
+        [...groupSlots].sort((a, b) =>
+          (a.word ?? a.prefix).localeCompare(b.word ?? b.prefix)
+        ),
+      ]);
   }, [hints]);
 
   // Groups after applying filters.
