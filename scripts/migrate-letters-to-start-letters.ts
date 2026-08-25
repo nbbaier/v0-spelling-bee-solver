@@ -138,19 +138,18 @@ async function main(): Promise<void> {
   const dates = (await redis.smembers(keys.dates())) ?? [];
   process.stdout.write(`Found ${dates.length} saved puzzle(s).\n`);
 
-  const outcomes = await Promise.all(
-    dates.sort().map(async (date): Promise<Outcome> => {
-      try {
-        const outcome = await migrateDate(date);
-        process.stdout.write(`  ${date}: ${outcome.status}\n`);
-        return outcome;
-      } catch (e) {
-        const reason = e instanceof Error ? e.message : String(e);
-        process.stdout.write(`  ${date}: failed — ${reason}\n`);
-        return { date, reason, status: "failed" };
-      }
-    })
-  );
+  const outcomes: Outcome[] = [];
+  for (const date of dates.sort()) {
+    try {
+      const outcome = await migrateDate(date);
+      outcomes.push(outcome);
+      process.stdout.write(`  ${date}: ${outcome.status}\n`);
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      outcomes.push({ date, status: "failed", reason });
+      process.stdout.write(`  ${date}: failed — ${reason}\n`);
+    }
+  }
 
   const counts = { failed: 0, migrated: 0, skipped: 0 };
   for (const o of outcomes) {
