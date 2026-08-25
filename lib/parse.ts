@@ -125,7 +125,8 @@ export function parseMatrix(raw: string): MatrixParseResult {
 
 /**
  * Parses the hint list, e.g. "DON x1 DOO x1 DRO x4".
- * Expands each prefix into N slots (one per word).
+ * Expands each prefix into N slots (one per word) and sorts the resulting
+ * slots alphabetically by prefix so the hint list is always alphabetized.
  */
 export function parseHints(raw: string): HintSlot[] {
   const slots: HintSlot[] = [];
@@ -149,5 +150,5 @@ export function parseHints(raw: string): HintSlot[] {
     );
   }
 
-  return slots;
+  return slots.sort((a, b) => a.prefix.localeCompare(b.prefix));
 }
