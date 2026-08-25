@@ -145,5 +145,7 @@ export function parseHints(raw: string): HintSlot[] {
     );
   }
 
-  return slots;
+  // Array#sort is stable, so slots from the same prefix keep their
+  // expansion order relative to each other.
+  return slots.sort((a, b) => a.prefix.localeCompare(b.prefix));
 }

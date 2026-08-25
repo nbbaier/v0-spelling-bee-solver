@@ -247,20 +247,18 @@ async function crawlThreeLetter(
   const perPrefix: (string[] | null)[] = new Array(links.length).fill(null);
   let cursor = 0;
 
-  async function worker() {
-    const index = cursor;
-    cursor += 1;
-    if (index >= links.length) {
-      return;
+  async function worker(): Promise<void> {
+    while (cursor < links.length) {
+      const index = cursor;
+      cursor += 1;
+      const link = links[index];
+      try {
+        const html = await fetchHtml(link.url);
+        perPrefix[index] = parseThreeLetterCells(parse(html));
+      } catch {
+        perPrefix[index] = null; // marks failure
+      }
     }
-    const link = links[index];
-    try {
-      const html = await fetchHtml(link.url);
-      perPrefix[index] = parseThreeLetterCells(parse(html));
-    } catch {
-      perPrefix[index] = null; // marks failure
-    }
-    await worker();
   }
 
   const workers = Array.from(
