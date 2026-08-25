@@ -87,7 +87,7 @@ describe("parseHints", () => {
     expect(slots.map((s) => s.prefix)).toEqual(["DRO", "GON"]);
   });
 
-  it("sorts slots alphabetically by word, using prefix when empty", () => {
+  it("sorts slots alphabetically by prefix, keeping input order within a prefix", () => {
     const slots = parseHints("ZOO x1 ANT x1 BAT x1");
 
     expect(slots.map((s) => s.prefix)).toEqual(["ANT", "BAT", "ZOO"]);

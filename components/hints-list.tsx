@@ -186,13 +186,19 @@ export function HintsList({
       arr.push(slot);
       map.set(slot.prefix, arr);
     }
+    // Sort groups by prefix. Within a group, filled words come first,
+    // alphabetized; empty slots keep their original order below, so words
+    // fill in from the top of the list.
     return Array.from(map.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([prefix, groupSlots]): [string, HintSlot[]] => [
         prefix,
-        [...groupSlots].sort((a, b) =>
-          (a.word ?? a.prefix).localeCompare(b.word ?? b.prefix)
-        ),
+        [
+          ...groupSlots
+            .filter((s) => s.word)
+            .sort((a, b) => (a.word ?? "").localeCompare(b.word ?? "")),
+          ...groupSlots.filter((s) => !s.word),
+        ],
       ]);
   }, [hints]);
 
