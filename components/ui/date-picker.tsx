@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -8,7 +8,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 function localISO(d: Date): string {
   const y = d.getFullYear();
@@ -51,38 +50,50 @@ export function DatePicker({
     return new Set(disabledDates.map(localISO));
   }, [disabledDates, enabledDateIndicator]);
 
+  const isDateDisabled = useCallback(
+    (date: Date) => {
+      const iso = localISO(date);
+      if (minISO && iso < minISO) {
+        return true;
+      }
+      if (maxISO && iso > maxISO) {
+        return true;
+      }
+      return false;
+    },
+    [maxISO, minISO]
+  );
+
+  const handleDateSelect = useCallback(
+    (date: Date | undefined) => {
+      if (date) {
+        onDateChange(date);
+        setOpen(false);
+      }
+    },
+    [onDateChange]
+  );
+
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger
         render={
           <Button
-            className={cn(
-              "w-auto justify-start text-left font-normal",
-              !value && "text-muted-foreground"
-            )}
+            className="w-auto justify-start text-left font-normal"
             disabled={disabled}
             variant="outline"
           >
-            {value?.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
+            {value.toLocaleDateString("en-US", {
               day: "numeric",
+              month: "short",
+              year: "numeric",
             })}
           </Button>
         }
       />
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
-          disabled={(date) => {
-            const iso = localISO(date);
-            if (minISO && iso < minISO) {
-              return true;
-            }
-            if (maxISO && iso > maxISO) {
-              return true;
-            }
-            return false;
-          }}
+          disabled={isDateDisabled}
           mode="single"
           modifiers={
             enabledDateIndicator
@@ -99,12 +110,7 @@ export function DatePicker({
                 }
               : {}
           }
-          onSelect={(date) => {
-            if (date) {
-              onDateChange(date);
-              setOpen(false);
-            }
-          }}
+          onSelect={handleDateSelect}
           selected={value}
         />
       </PopoverContent>

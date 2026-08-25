@@ -98,6 +98,27 @@ export function SolverApp() {
     [dates, setDate]
   );
 
+  const handleDatePickerChange = useCallback(
+    (selectedDate: Date) => handleDateChange(toLocalISO(selectedDate)),
+    [handleDateChange]
+  );
+
+  const handleRetryDates = useCallback(() => {
+    reloadDates();
+  }, [reloadDates]);
+
+  const handleCancelForceLoader = useCallback(() => {
+    setForceLoader(false);
+  }, []);
+
+  const handleAutoFetchHandled = useCallback(() => {
+    setAutoFetchDate(null);
+  }, []);
+
+  const handleStartNewPuzzle = useCallback(() => {
+    setForceLoader(true);
+  }, []);
+
   // Convert date strings to Date objects for the date picker
   const disabledDates = useMemo(
     () => dates.map((d) => parseLocalDate(d)),
@@ -128,7 +149,7 @@ export function SolverApp() {
     }
     if (datesError) {
       return (
-        <Button onClick={() => reloadDates()} size="sm" variant="outline">
+        <Button onClick={handleRetryDates} size="sm" variant="outline">
           Couldn&apos;t load dates — retry
         </Button>
       );
@@ -140,7 +161,7 @@ export function SolverApp() {
         enabledDateIndicator
         maxDate={parseLocalDate(latestPuzzleDateISO())}
         minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
-        onDateChange={(d) => handleDateChange(toLocalISO(d))}
+        onDateChange={handleDatePickerChange}
         value={parseLocalDate(date)}
       />
     );
@@ -164,7 +185,7 @@ export function SolverApp() {
                 A puzzle already exists for this date. Loading will replace it.
               </span>
               <Button
-                onClick={() => setForceLoader(false)}
+                onClick={handleCancelForceLoader}
                 size="sm"
                 variant="ghost"
               >
@@ -178,9 +199,9 @@ export function SolverApp() {
             dates={dates}
             datesError={datesError}
             datesReady={datesReady}
-            onAutoFetchHandled={() => setAutoFetchDate(null)}
+            onAutoFetchHandled={handleAutoFetchHandled}
             onLoad={handleLoad}
-            onRetryDates={() => reloadDates()}
+            onRetryDates={handleRetryDates}
             onSelectExisting={handleDateChange}
             saving={saving}
           />
@@ -243,7 +264,7 @@ export function SolverApp() {
             <span className="text-muted-foreground text-xs">Saving…</span>
           ) : null}
           {puzzle && !showLoader ? (
-            <Button onClick={() => setForceLoader(true)} variant="outline">
+            <Button onClick={handleStartNewPuzzle} variant="outline">
               Load new puzzle
             </Button>
           ) : null}

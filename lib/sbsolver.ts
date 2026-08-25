@@ -46,18 +46,18 @@ export interface ScrapeResult {
 }
 
 const MONTHS: Record<string, number> = {
-  january: 1,
-  february: 2,
-  march: 3,
   april: 4,
-  may: 5,
-  june: 6,
-  july: 7,
   august: 8,
-  september: 9,
-  october: 10,
-  november: 11,
   december: 12,
+  february: 2,
+  january: 1,
+  july: 7,
+  june: 6,
+  march: 3,
+  may: 5,
+  november: 11,
+  october: 10,
+  september: 9,
 };
 
 // Collapse &nbsp;/whitespace to single spaces and trim.
@@ -73,8 +73,8 @@ function validateUrl(raw: string): URL {
   let u: URL;
   try {
     u = new URL(raw.trim());
-  } catch {
-    throw new Error("That doesn't look like a valid URL.");
+  } catch (error) {
+    throw new Error("That doesn't look like a valid URL.", { cause: error });
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") {
     throw new Error("URL must start with http(s).");
@@ -248,16 +248,19 @@ async function crawlThreeLetter(
   let cursor = 0;
 
   async function worker() {
-    while (cursor < links.length) {
-      const index = cursor++;
-      const link = links[index];
-      try {
-        const html = await fetchHtml(link.url);
-        perPrefix[index] = parseThreeLetterCells(parse(html));
-      } catch {
-        perPrefix[index] = null; // marks failure
-      }
+    const index = cursor;
+    cursor += 1;
+    if (index >= links.length) {
+      return;
     }
+    const link = links[index];
+    try {
+      const html = await fetchHtml(link.url);
+      perPrefix[index] = parseThreeLetterCells(parse(html));
+    } catch {
+      perPrefix[index] = null; // marks failure
+    }
+    await worker();
   }
 
   const workers = Array.from(
@@ -276,7 +279,7 @@ async function crawlThreeLetter(
     }
   });
 
-  return { hintsText: tallies.join("  "), failedPrefixes };
+  return { failedPrefixes, hintsText: tallies.join("  ") };
 }
 
 export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
@@ -303,12 +306,12 @@ export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
   }
 
   return {
-    matrixText,
-    hintsText,
-    date,
     centerLetter,
-    letterSet,
-    pangramCount,
+    date,
     failedPrefixes,
+    hintsText,
+    letterSet,
+    matrixText,
+    pangramCount,
   };
 }

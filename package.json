@@ -1,4 +1,24 @@
 {
+  "name": "my-project",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "."
+  ],
+  "scripts": {
+    "build": "next build",
+    "check": "ultracite check",
+    "dev": "next dev",
+    "fix": "ultracite fix",
+    "lint": "ultracite check",
+    "migrate:start-letters": "node --env-file=.env.local --conditions=react-server --import tsx scripts/migrate-letters-to-start-letters.ts",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "overrides": {
+    "hono": "4.12.25"
+  },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@hugeicons/core-free-icons": "^4.3.0",
@@ -32,25 +52,5 @@
     "ultracite": "7.10.6",
     "vitest": "^4.1.11"
   },
-  "name": "my-project",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "ultracite check",
-    "check": "ultracite check",
-    "fix": "ultracite fix",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "migrate:start-letters": "node --env-file=.env.local --conditions=react-server --import tsx scripts/migrate-letters-to-start-letters.ts"
-  },
-  "version": "0.1.0",
-  "private": true,
-  "packageManager": "pnpm@10.34.4",
-  "overrides": {
-    "hono": "4.12.25"
-  },
-  "workspaces": [
-    "."
-  ]
+  "packageManager": "pnpm@10.34.4"
 }

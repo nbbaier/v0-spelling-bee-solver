@@ -3,7 +3,15 @@ import Cancel01Icon from "@hugeicons/core-free-icons/Cancel01Icon";
 import Delete02Icon from "@hugeicons/core-free-icons/Delete02Icon";
 import ViewOffIcon from "@hugeicons/core-free-icons/ViewOffIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +33,12 @@ function SlotInput({
   slot,
   allowedLetters,
   existingWords,
-  onCommit,
+  onSetWord,
 }: {
   slot: HintSlot;
   allowedLetters: string[];
   existingWords: Set<string>;
-  onCommit: (word: string | null) => void;
+  onSetWord: (slotId: string, word: string | null) => void;
 }) {
   const [value, setValue] = useState(slot.word ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -43,27 +51,30 @@ function SlotInput({
 
   const filled = Boolean(slot.word);
 
-  function validate(raw: string): string | null {
-    const trimmed = raw.trim().toUpperCase();
-    if (!trimmed) {
+  const validate = useCallback(
+    (raw: string): string | null => {
+      const trimmed = raw.trim().toUpperCase();
+      if (!trimmed) {
+        return null;
+      }
+      if (!trimmed.startsWith(slot.prefix.toUpperCase())) {
+        return `Must start with ${slot.prefix.toUpperCase()}`;
+      }
+      if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
+        return "Contains letters not in this puzzle";
+      }
+      if (
+        existingWords.has(trimmed) &&
+        trimmed !== (slot.word ?? "").toUpperCase()
+      ) {
+        return "Already entered";
+      }
       return null;
-    }
-    if (!trimmed.startsWith(slot.prefix.toUpperCase())) {
-      return `Must start with ${slot.prefix.toUpperCase()}`;
-    }
-    if (!hasOnlyAllowedLetters(trimmed, allowedLetters)) {
-      return "Contains letters not in this puzzle";
-    }
-    if (
-      existingWords.has(trimmed) &&
-      trimmed !== (slot.word ?? "").toUpperCase()
-    ) {
-      return "Already entered";
-    }
-    return null;
-  }
+    },
+    [allowedLetters, existingWords, slot.prefix, slot.word]
+  );
 
-  function commit() {
+  const commit = useCallback(() => {
     const trimmed = value.trim().toUpperCase();
     const err = validate(trimmed);
     if (err) {
@@ -71,22 +82,34 @@ function SlotInput({
       return;
     }
     setError(null);
-    onCommit(trimmed.length > 0 ? trimmed : null);
-  }
+    onSetWord(slot.id, trimmed.length > 0 ? trimmed : null);
+  }, [onSetWord, slot.id, validate, value]);
 
-  function handleDelete() {
+  const handleDelete = useCallback(() => {
     setValue("");
     setError(null);
-    onCommit(null);
-  }
+    onSetWord(slot.id, null);
+  }, [onSetWord, slot.id]);
 
-  function handleChange(raw: string) {
-    setValue(raw);
-    // Clear error as soon as the user starts editing again.
-    if (error) {
-      setError(null);
-    }
-  }
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setValue(event.target.value);
+      // Clear error as soon as the user starts editing again.
+      if (error) {
+        setError(null);
+      }
+    },
+    [error]
+  );
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.currentTarget.blur();
+      }
+    },
+    []
+  );
 
   return (
     <div className="relative">
@@ -104,17 +127,13 @@ function SlotInput({
             "border-destructive bg-destructive/5 pr-10 focus-visible:ring-destructive"
         )}
         onBlur={commit}
-        onChange={(e) => handleChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.currentTarget.blur();
-          }
-        }}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
         placeholder={`${slot.prefix.toLowerCase()}…`}
         spellCheck={false}
         value={value}
       />
-      {error && <p className="mt-1 text-destructive text-xs">{error}</p>}
+      {error ? <p className="mt-1 text-destructive text-xs">{error}</p> : null}
       {filled && !error && (
         <div className="group/del absolute top-1/2 right-2 size-5 -translate-y-1/2">
           <span className="absolute inset-0 inline-flex items-center justify-center font-medium text-muted-foreground text-xs transition-opacity group-focus-within/del:opacity-0 group-hover/del:opacity-0">
@@ -217,7 +236,7 @@ export function HintsList({
     [groups, letterFilter, hideCompleted]
   );
 
-  function handleGlobalSubmit() {
+  const handleGlobalSubmit = useCallback(() => {
     const trimmed = globalInput.trim().toUpperCase();
     if (!trimmed) {
       return;
@@ -254,7 +273,7 @@ export function HintsList({
     onSetWord(emptySlot.id, trimmed);
     setGlobalInput("");
     setGlobalError(null);
-  }
+  }, [allowedLetters, existingWords, globalInput, groups, onSetWord]);
 
   // Slots in scope for clearing: just the filtered letter's, or all of them.
   const clearableSlots = useMemo(
@@ -273,6 +292,50 @@ export function HintsList({
     setShowClearDialog(false);
   }, [letterFilter, clearableSlots, onClearWords]);
 
+  const handleOpenClearDialog = useCallback(() => {
+    setShowClearDialog(true);
+  }, []);
+
+  const handleGlobalChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setGlobalInput(event.target.value);
+      if (globalError) {
+        setGlobalError(null);
+      }
+    },
+    [globalError]
+  );
+
+  const handleGlobalKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleGlobalSubmit();
+      }
+    },
+    [handleGlobalSubmit]
+  );
+
+  const handleAllLetters = useCallback(() => {
+    setLetterFilter(null);
+  }, []);
+
+  const handleLetterFilter = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      const {
+        currentTarget: {
+          dataset: { letter },
+        },
+      } = event;
+      if (!letter) {
+        setLetterFilter(null);
+        return;
+      }
+      setLetterFilter((current) => (current === letter ? null : letter));
+    },
+    []
+  );
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
       {/* Header row */}
@@ -284,7 +347,7 @@ export function HintsList({
           <Button
             className="gap-1.5 text-muted-foreground text-xs hover:text-destructive"
             disabled={nothingToClear}
-            onClick={() => setShowClearDialog(true)}
+            onClick={handleOpenClearDialog}
             size="sm"
             variant="ghost"
           >
@@ -315,25 +378,15 @@ export function HintsList({
             globalError &&
               "border-destructive bg-destructive/5 focus-visible:ring-destructive"
           )}
-          onChange={(e) => {
-            setGlobalInput(e.target.value);
-            if (globalError) {
-              setGlobalError(null);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              handleGlobalSubmit();
-            }
-          }}
+          onChange={handleGlobalChange}
+          onKeyDown={handleGlobalKeyDown}
           placeholder="Enter any word…"
           spellCheck={false}
           value={globalInput}
         />
-        {globalError && (
+        {globalError ? (
           <p className="mt-1 text-destructive text-xs">{globalError}</p>
-        )}
+        ) : null}
       </div>
 
       {/* Letter filter pills */}
@@ -347,7 +400,8 @@ export function HintsList({
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-muted/70"
             )}
-            onClick={() => setLetterFilter(null)}
+            data-letter=""
+            onClick={handleAllLetters}
             type="button"
           >
             All
@@ -364,8 +418,9 @@ export function HintsList({
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/70"
                 )}
+                data-letter={l}
                 key={l}
-                onClick={() => setLetterFilter(selected ? null : l)}
+                onClick={handleLetterFilter}
                 title={isCenter ? "Center letter" : undefined}
                 type="button"
               >
@@ -406,7 +461,7 @@ export function HintsList({
                   <span className="font-bold font-mono text-card-foreground text-sm">
                     {prefix}
                   </span>
-                  {showLengths && (
+                  {showLengths ? (
                     <span
                       className="flex flex-wrap gap-1"
                       title={`Word lengths still possible for words starting with ${prefix[0]}`}
@@ -420,7 +475,7 @@ export function HintsList({
                         </span>
                       ))}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <span
                   className={cn(
@@ -441,7 +496,7 @@ export function HintsList({
                       allowedLetters={allowedLetters}
                       existingWords={existingWords}
                       key={slot.id}
-                      onCommit={(w) => onSetWord(slot.id, w)}
+                      onSetWord={onSetWord}
                       slot={slot}
                     />
                   ))}

@@ -3,41 +3,41 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Spelling Bee Solver",
   description:
     "Track your NYT Spelling Bee progress with an interactive matrix and hint list",
   generator: "v0.app",
   icons: {
+    apple: "/apple-icon.png",
     icon: [
       {
-        url: "/icon-light-32x32.png",
         media: "(prefers-color-scheme: light)",
+        url: "/icon-light-32x32.png",
       },
       {
-        url: "/icon-dark-32x32.png",
         media: "(prefers-color-scheme: dark)",
+        url: "/icon-dark-32x32.png",
       },
       {
-        url: "/icon.svg",
         type: "image/svg+xml",
+        url: "/icon.svg",
       },
     ],
-    apple: "/apple-icon.png",
   },
+  title: "Spelling Bee Solver",
 };
 
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
+    { color: "white", media: "(prefers-color-scheme: light)" },
+    { color: "black", media: "(prefers-color-scheme: dark)" },
   ],
 };
 

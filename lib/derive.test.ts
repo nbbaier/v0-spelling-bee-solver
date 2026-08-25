@@ -8,14 +8,14 @@ import type { Puzzle } from "./types";
 
 function makePuzzle(words: (string | null)[]): Puzzle {
   return {
-    date: "2024-01-01",
     centerLetter: "O",
+    date: "2024-01-01",
+    grid: { D: { 4: 2, 5: 1 }, O: { 4: 1 } },
+    hints: words.map((word, i) => ({ id: `S-${i}`, prefix: "XXX", word })),
+    lengths: [4, 5],
     letterSet: "DGNORUI",
     pangramCount: null,
     startLetters: ["D", "O"],
-    lengths: [4, 5],
-    grid: { D: { 4: 2, 5: 1 }, O: { 4: 1 } },
-    hints: words.map((word, i) => ({ id: `S-${i}`, prefix: "XXX", word })),
   };
 }
 
