@@ -55,11 +55,7 @@ function addRow(
     startLetters.push(letter);
   }
 
-  for (const [columnIndex, cell] of cells.entries()) {
-    const len = columnLengths[columnIndex];
-    if (len === null) {
-      continue;
-    }
+    if (len == null) {
     const value = cell === "" ? 0 : Number.parseInt(cell, 10);
     if (!Number.isNaN(value) && value > 0) {
       grid[letter][len] = (grid[letter][len] ?? 0) + value;
