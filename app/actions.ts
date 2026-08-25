@@ -39,19 +39,19 @@ async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
       failedPrefixes,
     } = await scrapePuzzle(url);
     return {
-      ok: true,
-      matrixText,
-      hintsText,
-      date,
       centerLetter,
-      letterSet,
-      pangramCount,
+      date,
       failedPrefixes,
+      hintsText,
+      letterSet,
+      matrixText,
+      ok: true,
+      pangramCount,
     };
   } catch (e) {
     return {
-      ok: false,
       error: e instanceof Error ? e.message : "Could not fetch that puzzle.",
+      ok: false,
     };
   }
 }
@@ -66,7 +66,7 @@ export async function fetchPuzzleByDateAction(
   dateIso: string
 ): Promise<FetchPuzzleResult> {
   if (!isPuzzleDateInRange(dateIso)) {
-    return { ok: false, error: "No puzzle is available for that date." };
+    return { error: "No puzzle is available for that date.", ok: false };
   }
   // sbsolver accepts the numeric puzzle id directly (/nt/<number>), so the date
   // resolves to a URL with no extra lookup. See lib/puzzle-date.ts.
@@ -79,10 +79,10 @@ export async function fetchPuzzleByDateAction(
   // than silently storing one day's puzzle under another date.
   if (result.ok && result.date !== dateIso) {
     return {
-      ok: false,
       error: result.date
         ? `That date resolved to the puzzle for ${result.date}. sbsolver's numbering may have shifted — try the URL option.`
         : "Couldn't confirm the puzzle's date on that page — try the URL option.",
+      ok: false,
     };
   }
   return result;

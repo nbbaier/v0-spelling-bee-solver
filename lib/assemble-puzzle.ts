@@ -35,8 +35,11 @@ export function assemblePuzzle(
   }));
 
   return {
-    date,
     centerLetter: matrix.centerLetter ?? null,
+    date,
+    grid: matrix.grid,
+    hints,
+    lengths: matrix.lengths,
     // Empty string when the row predates letterSet; validation then falls back
     // to startLetters (see lib/letters.ts → allowedLetters).
     letterSet: matrix.letterSet ?? "",
@@ -45,8 +48,5 @@ export function assemblePuzzle(
     // Fall back to the legacy field for not-yet-migrated rows. Empty array as a
     // last resort keeps derive()/the grid from crashing on malformed data.
     startLetters: matrix.startLetters ?? matrix.letters ?? [],
-    lengths: matrix.lengths,
-    grid: matrix.grid,
-    hints,
   };
 }

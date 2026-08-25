@@ -210,20 +210,20 @@ export function usePuzzle(initialDate?: string) {
   const loadSample = useCallback(() => setDate(SAMPLE_ID), []);
 
   return {
+    clearWords,
     date,
-    setDate,
+    dates,
+    datesError,
+    datesReady,
+    deletePuzzle,
+    isLoading,
     isSample,
     loadSample,
     puzzle,
-    dates,
-    datesReady,
-    datesError,
     reloadDates,
-    isLoading,
-    saving,
     savePuzzle,
+    saving,
+    setDate,
     setWord,
-    deletePuzzle,
-    clearWords,
   };
 }

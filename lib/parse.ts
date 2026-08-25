@@ -27,13 +27,13 @@ function toLines(raw: string): string[] {
 
 /** Finds the first row containing an integer cell (the word-length header). */
 function findHeader(lines: string[]): { index: number; cells: string[] } {
-  for (let i = 0; i < lines.length; i++) {
-    const cells = lines[i].split("\t").map((c) => c.trim());
+  for (const [index, line] of lines.entries()) {
+    const cells = line.split("\t").map((c) => c.trim());
     if (cells.some((c) => INT_RE.test(c))) {
-      return { index: i, cells };
+      return { cells, index };
     }
   }
-  return { index: -1, cells: [] };
+  return { cells: [], index: -1 };
 }
 
 /** Adds a single data row's counts into the grid, if it starts with a letter. */
@@ -44,7 +44,7 @@ function addRow(
   startLetters: string[]
 ): void {
   const cells = line.split("\t").map((c) => c.trim());
-  const label = cells[0];
+  const [label] = cells;
   if (!LETTER_RE.test(label)) {
     return; // skip totals / blank rows
   }
@@ -55,12 +55,8 @@ function addRow(
     startLetters.push(letter);
   }
 
-  for (let c = 0; c < cells.length; c++) {
-    const len = columnLengths[c];
     if (len == null) {
-      continue;
-    }
-    const value = cells[c] === "" ? 0 : Number.parseInt(cells[c], 10);
+    const value = cell === "" ? 0 : Number.parseInt(cell, 10);
     if (!Number.isNaN(value) && value > 0) {
       grid[letter][len] = (grid[letter][len] ?? 0) + value;
     }
@@ -110,8 +106,8 @@ export function parseMatrix(raw: string): MatrixParseResult {
   const startLetters: string[] = [];
   const grid: Record<string, Record<number, number>> = {};
 
-  for (let i = header.index + 1; i < lines.length; i++) {
-    addRow(lines[i], columnLengths, grid, startLetters);
+  for (const line of lines.slice(header.index + 1)) {
+    addRow(line, columnLengths, grid, startLetters);
   }
 
   if (startLetters.length === 0) {
@@ -120,25 +116,25 @@ export function parseMatrix(raw: string): MatrixParseResult {
     );
   }
 
-  return { centerLetter: null, startLetters, lengths: uniqueLengths, grid };
+  return { centerLetter: null, grid, lengths: uniqueLengths, startLetters };
 }
 
 /**
  * Parses the hint list, e.g. "DON x1 DOO x1 DRO x4".
- * Expands each prefix into N slots (one per word).
+ * Expands each prefix into N slots (one per word) and sorts the resulting
+ * slots alphabetically by prefix, preserving input order within each
+ * prefix so filled words appear top-down.
  */
 export function parseHints(raw: string): HintSlot[] {
   const slots: HintSlot[] = [];
-  let counter = 0;
 
   HINT_RE.lastIndex = 0;
   let match = HINT_RE.exec(raw);
   while (match !== null) {
     const prefix = match[1].toUpperCase();
     const count = Number.parseInt(match[2], 10);
-    for (let i = 0; i < count; i++) {
-      slots.push({ id: `${prefix}-${counter}`, prefix, word: null });
-      counter++;
+    for (let i = 0; i < count; i += 1) {
+      slots.push({ id: `${prefix}-${slots.length}`, prefix, word: null });
     }
     match = HINT_RE.exec(raw);
   }
@@ -149,5 +145,7 @@ export function parseHints(raw: string): HintSlot[] {
     );
   }
 
-  return slots;
+  // Array#sort is stable, so slots from the same prefix keep their
+  // expansion order relative to each other.
+  return slots.sort((a, b) => a.prefix.localeCompare(b.prefix));
 }

@@ -95,31 +95,31 @@ async function migrateDate(date: string): Promise<Outcome> {
   if (scrape.date !== date) {
     return {
       date,
-      status: "failed",
       reason: scrape.date
         ? `scrape resolved to ${scrape.date}, not ${date}`
         : "could not confirm the puzzle's date on the scraped page",
+      status: "failed",
     };
   }
 
   const parsed = parseMatrix(scrape.matrixText);
   const matrix: MatrixData = {
     centerLetter: scrape.centerLetter ?? existing?.centerLetter ?? null,
+    grid: parsed.grid,
+    lengths: parsed.lengths,
     // Prefer the fresh scrape because it reflects the current extraction rules.
     // Fall back to a stored value only if the page shape stops exposing the set.
     letterSet: scrape.letterSet || existing?.letterSet || "",
     // Preserve whatever is stored; scraping the count into old rows is #25.
     pangramCount: existing?.pangramCount ?? null,
-    grid: parsed.grid,
-    lengths: parsed.lengths,
     startLetters: parsed.startLetters,
   };
 
   if (sameMatrix(existing, matrix)) {
     return {
       date,
-      status: "skipped",
       reason: "already matches current scrape",
+      status: "skipped",
     };
   }
 
@@ -151,9 +151,9 @@ async function main(): Promise<void> {
     }
   }
 
-  const counts = { migrated: 0, skipped: 0, failed: 0 };
+  const counts = { failed: 0, migrated: 0, skipped: 0 };
   for (const o of outcomes) {
-    counts[o.status]++;
+    counts[o.status] += 1;
   }
   process.stdout.write(
     `\nDone. ${counts.migrated} migrated, ${counts.skipped} skipped, ${counts.failed} failed.\n`

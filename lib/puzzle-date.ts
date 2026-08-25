@@ -46,10 +46,10 @@ export function puzzleNumberForDate(iso: string): number {
 export function latestPuzzleDateISO(): string {
   // en-CA formats as YYYY-MM-DD, which is exactly the ISO shape we want.
   return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
     timeZone: "America/New_York",
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
   }).format(new Date());
 }
 

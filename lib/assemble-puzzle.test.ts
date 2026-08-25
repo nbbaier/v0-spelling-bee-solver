@@ -9,10 +9,10 @@ const PREFIXES: HintSlot[] = [
 
 const NEW_MATRIX: StoredMatrix = {
   centerLetter: "O",
-  letterSet: "DOXY",
-  pangramCount: 3,
   grid: { D: { 4: 2 }, O: { 4: 1 } },
   lengths: [4],
+  letterSet: "DOXY",
+  pangramCount: 3,
   startLetters: ["D", "O"],
 };
 

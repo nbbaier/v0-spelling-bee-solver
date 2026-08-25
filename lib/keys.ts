@@ -10,10 +10,10 @@
 export const SAMPLE_ID = "sample";
 
 export const keys = {
+  dates: () => "sbs:dates",
   matrix: (id: string) => `sbs:${id}:matrix`,
   prefixes: (id: string) => `sbs:${id}:prefixes`,
   words: (id: string) => `sbs:${id}:words`,
-  dates: () => "sbs:dates",
 };
 
 // Returns today's date as an ISO YYYY-MM-DD string in local time.

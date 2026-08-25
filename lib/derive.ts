@@ -49,9 +49,9 @@ export function derive(puzzle: Puzzle): Derived {
     if (w.length === 0) {
       continue;
     }
-    const letter = w[0];
+    const [letter] = w;
     const len = w.length;
-    foundWords++;
+    foundWords += 1;
     if (found[letter] === undefined) {
       found[letter] = {};
     }
@@ -66,11 +66,11 @@ export function derive(puzzle: Puzzle): Derived {
 
   return {
     found,
-    totalWords,
     foundWords,
-    lengthTotals,
     lengthFound,
-    letterTotals,
+    lengthTotals,
     letterFound,
+    letterTotals,
+    totalWords,
   };
 }

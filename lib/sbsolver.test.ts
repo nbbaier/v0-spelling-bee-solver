@@ -139,38 +139,36 @@ describe("scrapePuzzle", () => {
       rows: ["A", "D", "H", "M", "N", "W"],
       value: "Oadhmnw",
     },
-  ])("keeps matrix rows, all letters, and center letter independent for /s/$id", async ({
-    center,
-    id,
-    rows,
-    value,
-  }) => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockImplementation((input) => {
-        const url = String(input);
-        if (url === `https://www.sbsolver.com/nt/${id}`) {
-          return Promise.resolve(
-            new Response(puzzleHtml({ center, id, rows, value }))
-          );
-        }
-        if (url === `https://www.sbsolver.com/nt/${value}/${id}/ba`) {
-          return Promise.resolve(new Response(prefixHtml()));
-        }
-        return Promise.resolve(new Response("", { status: 404 }));
-      });
+  ])(
+    "keeps matrix rows, all letters, and center letter independent for /s/$id",
+    async ({ center, id, rows, value }) => {
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockImplementation((input) => {
+          const url = String(input);
+          if (url === `https://www.sbsolver.com/nt/${id}`) {
+            return Promise.resolve(
+              new Response(puzzleHtml({ center, id, rows, value }))
+            );
+          }
+          if (url === `https://www.sbsolver.com/nt/${value}/${id}/ba`) {
+            return Promise.resolve(new Response(prefixHtml()));
+          }
+          return Promise.resolve(new Response("", { status: 404 }));
+        });
 
-    const result = await scrapePuzzle(`https://www.sbsolver.com/s/${id}`);
-    const matrix = parseMatrix(result.matrixText);
+      const result = await scrapePuzzle(`https://www.sbsolver.com/s/${id}`);
+      const matrix = parseMatrix(result.matrixText);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      `https://www.sbsolver.com/nt/${id}`,
-      expect.any(Object)
-    );
-    expect(result.letterSet).toBe(value.toUpperCase());
-    expect(result.centerLetter).toBe(center);
-    expect(result.pangramCount).toBe(3);
-    expect(matrix.startLetters).toEqual(rows);
-    expect(result.hintsText).toBe("BAT x1");
-  });
+      expect(fetchMock).toHaveBeenCalledWith(
+        `https://www.sbsolver.com/nt/${id}`,
+        expect.any(Object)
+      );
+      expect(result.letterSet).toBe(value.toUpperCase());
+      expect(result.centerLetter).toBe(center);
+      expect(result.pangramCount).toBe(3);
+      expect(matrix.startLetters).toEqual(rows);
+      expect(result.hintsText).toBe("BAT x1");
+    }
+  );
 });

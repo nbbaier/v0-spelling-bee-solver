@@ -87,6 +87,22 @@ describe("parseHints", () => {
     expect(slots.map((s) => s.prefix)).toEqual(["DRO", "GON"]);
   });
 
+  it("sorts slots alphabetically by prefix, keeping input order within a prefix", () => {
+    const slots = parseHints("ZOO x1 ANT x1 BAT x1");
+
+    expect(slots.map((s) => s.prefix)).toEqual(["ANT", "BAT", "ZOO"]);
+  });
+
+  it("sorts multiple slots per prefix while keeping stable ids", () => {
+    const slots = parseHints("CAR x2 CAB x1");
+
+    expect(slots.map((s) => ({ id: s.id, prefix: s.prefix }))).toEqual([
+      { id: "CAB-2", prefix: "CAB" },
+      { id: "CAR-0", prefix: "CAR" },
+      { id: "CAR-1", prefix: "CAR" },
+    ]);
+  });
+
   it("throws when no hints can be found", () => {
     expect(() => parseHints("nothing here")).toThrow("No hints found");
   });

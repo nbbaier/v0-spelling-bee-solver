@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   type FetchPuzzleResult,
   fetchPuzzleByDateAction,
@@ -67,6 +76,18 @@ function CenterLetterPicker({
   value: string | null;
   onChange: (next: string | null) => void;
 }) {
+  const handleLetterClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      const {
+        currentTarget: {
+          dataset: { letter },
+        },
+      } = event;
+      onChange(value === letter ? null : (letter ?? null));
+    },
+    [onChange, value]
+  );
+
   return (
     <div className="space-y-2">
       <Label>Center letter</Label>
@@ -82,8 +103,9 @@ function CenterLetterPicker({
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/60"
               )}
+              data-letter={l}
               key={l}
-              onClick={() => onChange(selected ? null : l)}
+              onClick={handleLetterClick}
               type="button"
             >
               {l}
@@ -111,6 +133,11 @@ function LetterSetInput({
   onChange: (next: string) => void;
   complete: boolean;
 }) {
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
+    [onChange]
+  );
+
   return (
     <div className="space-y-2">
       <Label htmlFor="letter-set">Letter set</Label>
@@ -118,7 +145,7 @@ function LetterSetInput({
         autoCapitalize="characters"
         className="font-mono text-base uppercase md:text-sm"
         id="letter-set"
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         placeholder="RDGINOW"
         value={value}
       />
@@ -292,7 +319,8 @@ export function SetupPanel({
       targetDate: (result: FetchPuzzleResult & { ok: true }) => string | null,
       reachError: string
     ) => {
-      const token = ++requestToken.current;
+      requestToken.current += 1;
+      const token = requestToken.current;
       setFetchError(null);
       setError(null);
       setFetching(true);
@@ -338,13 +366,13 @@ export function SetupPanel({
     [dates, onSelectExisting, runFetch]
   );
 
-  function handleFetch() {
+  const handleFetch = useCallback(() => {
     runFetch(
       () => fetchPuzzleFromUrlAction(url),
       (result) => result.date,
       "Couldn't reach the puzzle. Check the URL and try again."
     );
-  }
+  }, [runFetch, url]);
 
   // When the parent drops us into the loader for a date with no saved puzzle,
   // scrape it automatically. A handled-date ref makes consumption idempotent so
@@ -364,7 +392,7 @@ export function SetupPanel({
     onAutoFetchHandled();
   }, [autoFetchDate, handleDateSelect, onAutoFetchHandled]);
 
-  function handleLoad() {
+  const handleLoad = useCallback(() => {
     setError(null);
     if (mode === "sample") {
       try {
@@ -373,11 +401,11 @@ export function SetupPanel({
         onLoad(
           {
             centerLetter: SAMPLE_CENTER_LETTER,
+            grid,
+            lengths,
             letterSet: SAMPLE_LETTER_SET,
             pangramCount: SAMPLE_PANGRAM_COUNT,
             startLetters,
-            lengths,
-            grid,
           },
           hints,
           SAMPLE_ID
@@ -395,6 +423,8 @@ export function SetupPanel({
       onLoad(
         {
           centerLetter,
+          grid,
+          lengths,
           // Persist the set only when it holds all seven letters. An incomplete
           // hand-confirmed set is stored as "" (unknown) so nothing downstream
           // trusts it as authoritative; validation then falls back to the grid's
@@ -402,8 +432,6 @@ export function SetupPanel({
           letterSet: letterSetComplete ? normalizedLetterSet : "",
           pangramCount,
           startLetters,
-          lengths,
-          grid,
         },
         hints,
         fetchedDate ?? date
@@ -411,7 +439,72 @@ export function SetupPanel({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not parse the puzzle.");
     }
-  }
+  }, [
+    centerLetter,
+    date,
+    fetchedDate,
+    hintsText,
+    letterSetComplete,
+    matrixText,
+    mode,
+    normalizedLetterSet,
+    onLoad,
+    pangramCount,
+  ]);
+
+  const handleDateMode = useCallback(() => {
+    setMode("date");
+    setError(null);
+  }, []);
+
+  const handleSampleMode = useCallback(() => {
+    setMode("sample");
+    setError(null);
+  }, []);
+
+  const handleDatePickerChange = useCallback(
+    (selectedDate: Date) => {
+      const y = selectedDate.getFullYear();
+      const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      handleDateSelect(`${y}-${m}-${day}`);
+    },
+    [handleDateSelect]
+  );
+
+  const handleUrlChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setUrl(event.target.value);
+      if (fetchError) {
+        setFetchError(null);
+      }
+    },
+    [fetchError]
+  );
+
+  const handleUrlKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter" && url.trim() && !fetching) {
+        event.preventDefault();
+        handleFetch();
+      }
+    },
+    [fetching, handleFetch, url]
+  );
+
+  const handleMatrixChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setMatrixText(event.target.value);
+    },
+    []
+  );
+
+  const handleHintsChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setHintsText(event.target.value);
+    },
+    []
+  );
 
   const canSubmit =
     mode === "sample" ||
@@ -438,10 +531,7 @@ export function SetupPanel({
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => {
-              setMode("date");
-              setError(null);
-            }}
+            onClick={handleDateMode}
             type="button"
           >
             Real puzzle
@@ -452,10 +542,7 @@ export function SetupPanel({
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => {
-              setMode("sample");
-              setError(null);
-            }}
+            onClick={handleSampleMode}
             type="button"
           >
             Sample data
@@ -474,12 +561,7 @@ export function SetupPanel({
                     enabledDateIndicator
                     maxDate={parseLocalDate(latestPuzzleDateISO())}
                     minDate={parseLocalDate(FIRST_PUZZLE_ISO)}
-                    onDateChange={(d) => {
-                      const y = d.getFullYear();
-                      const m = String(d.getMonth() + 1).padStart(2, "0");
-                      const day = String(d.getDate()).padStart(2, "0");
-                      handleDateSelect(`${y}-${m}-${day}`);
-                    }}
+                    onDateChange={handleDatePickerChange}
                     value={parseLocalDate(fetchedDate ?? date)}
                   />
                   {fetching ? (
@@ -522,18 +604,8 @@ export function SetupPanel({
                       className="font-mono text-base md:text-sm"
                       id="puzzle-url"
                       inputMode="url"
-                      onChange={(e) => {
-                        setUrl(e.target.value);
-                        if (fetchError) {
-                          setFetchError(null);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && url.trim() && !fetching) {
-                          e.preventDefault();
-                          handleFetch();
-                        }
-                      }}
+                      onChange={handleUrlChange}
+                      onKeyDown={handleUrlKeyDown}
                       placeholder="https://www.sbsolver.com/nt/…"
                       type="url"
                       value={url}
@@ -559,7 +631,7 @@ export function SetupPanel({
                 <Textarea
                   className="font-mono text-base md:text-sm"
                   id="matrix"
-                  onChange={(e) => setMatrixText(e.target.value)}
+                  onChange={handleMatrixChange}
                   placeholder={MATRIX_PLACEHOLDER}
                   rows={6}
                   value={matrixText}
@@ -587,7 +659,7 @@ export function SetupPanel({
                 <Textarea
                   className="font-mono text-base md:text-sm"
                   id="hints"
-                  onChange={(e) => setHintsText(e.target.value)}
+                  onChange={handleHintsChange}
                   placeholder={HINTS_PLACEHOLDER}
                   rows={4}
                   value={hintsText}
