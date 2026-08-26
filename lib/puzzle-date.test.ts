@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FIRST_PUZZLE_ISO,
   isPuzzleDateInRange,
+  isRealIsoDate,
   puzzleNumberForDate,
 } from "./puzzle-date";
 
@@ -53,5 +54,16 @@ describe("isPuzzleDateInRange", () => {
   it("rejects malformed strings", () => {
     expect(isPuzzleDateInRange("not-a-date")).toBe(false);
     expect(isPuzzleDateInRange("2018-5-9")).toBe(false);
+  });
+});
+
+describe("isRealIsoDate", () => {
+  it("accepts a real date", () => {
+    expect(isRealIsoDate("2026-01-15")).toBe(true);
+  });
+
+  it("rejects calendar-invalid dates", () => {
+    expect(isRealIsoDate("2026-13-99")).toBe(false);
+    expect(isRealIsoDate("2026-02-30")).toBe(false);
   });
 });

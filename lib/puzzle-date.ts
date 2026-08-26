@@ -19,7 +19,7 @@ function utcNoon(iso: string): number {
 // True only for a real calendar date in strict YYYY-MM-DD form. Guards against
 // inputs like "2019-99-99" that pass a lexical range check but normalize to a
 // different date via Date.UTC.
-function isRealIsoDate(iso: string): boolean {
+export function isRealIsoDate(iso: string): boolean {
   const m = iso.match(ISO_DATE_RE);
   if (!m) {
     return false;
