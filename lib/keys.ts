@@ -15,10 +15,10 @@ export const keys = {
   dates: () => "sbs:dates",
   matrix: (id: string) => `sbs:${id}:matrix`,
   prefixes: (id: string) => `sbs:${id}:prefixes`,
-  words: (id: string) => `sbs:${id}:words`,
   // Room-scoped progress. The legacy words(id) builder stays for the sample
   // puzzle and not-yet-migrated legacy hashes.
   roomWords: (room: string, id: string) => `sbs:room:${room}:${id}:words`,
+  words: (id: string) => `sbs:${id}:words`,
 };
 
 // Returns today's date as an ISO YYYY-MM-DD string in local time.

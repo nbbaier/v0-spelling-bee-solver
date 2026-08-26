@@ -253,6 +253,7 @@ async function crawlThreeLetter(
       cursor += 1;
       const link = links[index];
       try {
+        // biome-ignore lint/performance/noAwaitInLoops: One fetch per loop pass is the design; concurrency comes from the surrounding worker pool.
         const html = await fetchHtml(link.url);
         perPrefix[index] = parseThreeLetterCells(parse(html));
       } catch {

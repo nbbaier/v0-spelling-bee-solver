@@ -1,8 +1,7 @@
 "use server";
 
-import { isValidPuzzleId, isSampleId } from "@/lib/keys";
+import { isSampleId, isValidPuzzleId } from "@/lib/keys";
 import { isPuzzleDateInRange, puzzleNumberForDate } from "@/lib/puzzle-date";
-import { isValidRoomName } from "@/lib/rooms";
 import {
   clearAllWords,
   clearWordsForSlots,
@@ -10,6 +9,7 @@ import {
   savePuzzle,
   setWord,
 } from "@/lib/puzzle-store";
+import { isValidRoomName } from "@/lib/rooms";
 import { scrapePuzzle } from "@/lib/sbsolver";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
@@ -21,7 +21,7 @@ function assertWordsScope(date: string, room?: string | null): void {
     throw new Error("Invalid puzzle id");
   }
   if (isSampleId(date)) {
-    if (room != null) {
+    if (typeof room === "string") {
       throw new Error("The sample puzzle cannot belong to a room");
     }
     return;

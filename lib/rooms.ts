@@ -247,9 +247,11 @@ export function parseRoomState(raw: string | null): RoomState {
   const record = parsed as Record<string, unknown>;
   const { current, joined, lastDate } = record;
   if (
-    !(current === null || typeof current === "string") ||
-    !Array.isArray(joined) ||
-    !joined.every((name): name is string => typeof name === "string")
+    !(
+      (current === null || typeof current === "string") &&
+      Array.isArray(joined) &&
+      joined.every((name): name is string => typeof name === "string")
+    )
   ) {
     return EMPTY_ROOM_STATE;
   }

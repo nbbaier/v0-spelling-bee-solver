@@ -9,10 +9,12 @@ import {
   todayEasternISO,
 } from "./rooms";
 
+const ROOM_SHAPE_RE = /^[a-z]+-[a-z]+-[a-z]+$/;
+
 describe("generateRoomName", () => {
   it("produces three hyphen-joined lowercase words", () => {
-    for (let i = 0; i < 20; i++) {
-      expect(generateRoomName()).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
+    for (let i = 0; i < 20; i += 1) {
+      expect(generateRoomName()).toMatch(ROOM_SHAPE_RE);
     }
   });
 
@@ -28,7 +30,7 @@ describe("generateRoomName", () => {
 
   it("varies across the word lists at opposite ends of [0,1)", () => {
     const low = generateRoomName(() => 0);
-    const high = generateRoomName(() => 0.999999);
+    const high = generateRoomName(() => 0.999_999);
     expect(low).not.toBe(high);
   });
 });
