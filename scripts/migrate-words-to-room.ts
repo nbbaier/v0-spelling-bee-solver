@@ -15,9 +15,9 @@
  * Dry run:  pnpm migrate:words-to-room -- <room-name> --dry-run
  * Needs KV_REST_API_URL / KV_REST_API_TOKEN (loaded from .env.local).
  */
-import { isValidRoomName } from "../lib/rooms";
 import { keys } from "../lib/keys";
 import { redis } from "../lib/redis";
+import { isValidRoomName } from "../lib/rooms";
 
 type Outcome =
   | { date: string; count: number; status: "copied" }
@@ -50,10 +50,9 @@ async function migrateDate(
   return { count: entries.length, date, status: "copied" };
 }
 
-async function main(): Promise<void> {
-  const dryRun = process.argv.includes("--dry-run");
+// Returns the validated room name, or exits with a usage/validation error.
+function requireRoomArg(): string {
   const room = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
-
   if (!room) {
     process.stderr.write(
       "Usage: pnpm migrate:words-to-room -- <room-name> [--dry-run]\n"
@@ -64,6 +63,28 @@ async function main(): Promise<void> {
     process.stderr.write(`Refusing invalid room name: ${room}\n`);
     process.exit(1);
   }
+  return room;
+}
+
+function describeOutcome(
+  outcome: Outcome,
+  room: string,
+  dryRun: boolean
+): string {
+  if (outcome.status === "copied" || outcome.status === "would-copy") {
+    return `  ${outcome.date}: ${outcome.status} ${outcome.count} words → ${
+      dryRun ? "(would write) " : ""
+    }sbs:room:${room}:${outcome.date}:words`;
+  }
+  if (outcome.status === "empty") {
+    return `  ${outcome.date}: empty (nothing to copy)`;
+  }
+  return `  ${outcome.date}: failed — ${"reason" in outcome ? outcome.reason : "unknown"}`;
+}
+
+async function main(): Promise<void> {
+  const dryRun = process.argv.includes("--dry-run");
+  const room = requireRoomArg();
 
   if (!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)) {
     process.stderr.write(
@@ -82,34 +103,24 @@ async function main(): Promise<void> {
 
   const outcomes: Outcome[] = [];
   for (const date of dates) {
+    let outcome: Outcome;
     try {
       // Sequential on purpose; see migrate-letters-to-start-letters.ts.
       // biome-ignore lint/performance/noAwaitInLoops: Sequential migration is intentional.
-      const outcome = await migrateDate(room, date, dryRun);
-      outcomes.push(outcome);
-      if (outcome.status === "copied" || outcome.status === "would-copy") {
-        process.stdout.write(
-          `  ${date}: ${outcome.status} ${outcome.count} words → ${
-            dryRun ? "(would write) " : ""
-          }sbs:room:${room}:${date}:words\n`
-        );
-      } else if (outcome.status === "empty") {
-        process.stdout.write(`  ${date}: empty (nothing to copy)\n`);
-      } else {
-        process.stdout.write(`  ${date}: failed — ${outcome.reason}\n`);
-      }
+      outcome = await migrateDate(room, date, dryRun);
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
-      outcomes.push({ date, reason, status: "failed" });
-      process.stdout.write(`  ${date}: failed — ${reason}\n`);
+      outcome = { date, reason, status: "failed" };
     }
+    outcomes.push(outcome);
+    process.stdout.write(`${describeOutcome(outcome, room, dryRun)}\n`);
   }
 
   const counts = {
     copied: 0,
-    "would-copy": 0,
     empty: 0,
     failed: 0,
+    "would-copy": 0,
   };
   let totalWords = 0;
   for (const o of outcomes) {
