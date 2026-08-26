@@ -5,17 +5,20 @@ One-off operational scripts. Not part of the app runtime.
 ## `migrate-letters-to-start-letters.ts`
 
 One-time migration that rebuilds saved matrices under the current shape: the
-`MatrixData.letters` → `startLetters` rename **and** the `letterSet` backfill.
+`MatrixData.letters` → `startLetters` rename and the `letterSet` and
+`pangramCount` backfills.
 
 ### Do I need to run it?
 
 Only if the KV/Redis instance your app reads **already holds saved puzzles**.
-Two shapes need it: puzzles saved before the rename stored their grid rows under
-`letters`, so after deploy `getPuzzle` reads `startLetters` as `undefined` and
-their matrix/progress break; puzzles saved before the `letterSet` slice have no
-letter set, so word validation falls back to start letters and misses the #19
-fix (a word using a puzzle letter that begins no answer). Both are repaired by a
-refetch. Puzzles saved after both slices write the full shape and need nothing.
+Legacy rows can need it for three reasons: puzzles saved before the rename stored
+their grid rows under `letters`, so after deploy `getPuzzle` reads
+`startLetters` as `undefined` and their matrix/progress break; puzzles saved
+before the `letterSet` slice have no letter set, so word validation falls back to
+start letters and misses the #19 fix (a word using a puzzle letter that begins no
+answer); and rows saved before the pangram-count feature have no count to
+display. All three cases are repaired by a refetch. Puzzles saved after these
+slices write the full shape and need nothing.
 
 Check whether any puzzles are saved (read-only, mutates nothing):
 
@@ -31,6 +34,7 @@ node --env-file=.env.local --import tsx -e \
 ### Running
 
 ```bash
+pnpm migrate:start-letters -- --dry-run
 pnpm migrate:start-letters
 ```
 
@@ -39,5 +43,7 @@ refetches each saved puzzle from sbsolver and rewrites only the matrix key when
 the rebuilt matrix differs — entered words and hint slots are preserved, so it's
 safe to run on data with progress. It is idempotent: already-current matrices
 are skipped after comparison, rather than just because fields are present. Run
-it against each KV store that has its own saved data (production, preview,
-local) using that environment's credentials.
+the dry run first; it reports matrices as `would-migrate` without writing them.
+Run the real migration only after the pangram-count feature is deployed, against
+each KV store that has its own saved data (production, preview, local) using that
+environment's credentials.

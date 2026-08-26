@@ -1,6 +1,7 @@
 /**
  * One-time migration: rebuild persisted matrices under the current shape,
- * backfilling `startLetters` (renamed from `letters`) and `letterSet`.
+ * backfilling `startLetters` (renamed from `letters`), `letterSet`, and
+ * `pangramCount`.
  *
  * Puzzles saved before the rename stored their grid row labels under
  * `MatrixData.letters`; the field is now `startLetters` (see lib/types.ts).
@@ -20,7 +21,8 @@
  * Idempotent: the script compares the rebuilt matrix to the stored one and
  * skips rows that already match the current scraper/parser output.
  *
- * Run:  pnpm migrate:start-letters
+ * Run:      pnpm migrate:start-letters
+ * Dry run:  pnpm migrate:start-letters -- --dry-run
  * Needs KV_REST_API_URL / KV_REST_API_TOKEN (loaded from .env.local).
  */
 import { keys } from "../lib/keys";
@@ -36,6 +38,7 @@ type StoredMatrix = Partial<MatrixData> & { letters?: string[] };
 
 type Outcome =
   | { date: string; status: "migrated" }
+  | { date: string; status: "would-migrate" }
   | { date: string; status: "skipped"; reason: string }
   | { date: string; status: "failed"; reason: string };
 
@@ -75,13 +78,14 @@ function sameMatrix(existing: StoredMatrix | null, next: MatrixData): boolean {
     existing &&
       existing.centerLetter === next.centerLetter &&
       existing.letterSet === next.letterSet &&
+      (existing.pangramCount ?? null) === next.pangramCount &&
       sameArray(existing.lengths, next.lengths) &&
       sameArray(existing.startLetters, next.startLetters) &&
       sameGrid(existing.grid, next.grid)
   );
 }
 
-async function migrateDate(date: string): Promise<Outcome> {
+async function migrateDate(date: string, dryRun: boolean): Promise<Outcome> {
   const existing = await redis.get<StoredMatrix>(keys.matrix(date));
 
   const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(date)}`;
@@ -110,8 +114,7 @@ async function migrateDate(date: string): Promise<Outcome> {
     // Prefer the fresh scrape because it reflects the current extraction rules.
     // Fall back to a stored value only if the page shape stops exposing the set.
     letterSet: scrape.letterSet || existing?.letterSet || "",
-    // Preserve whatever is stored; scraping the count into old rows is #25.
-    pangramCount: existing?.pangramCount ?? null,
+    pangramCount: scrape.pangramCount ?? existing?.pangramCount ?? null,
     startLetters: parsed.startLetters,
   };
 
@@ -123,11 +126,17 @@ async function migrateDate(date: string): Promise<Outcome> {
     };
   }
 
+  if (dryRun) {
+    return { date, status: "would-migrate" };
+  }
+
   await redis.set(keys.matrix(date), matrix);
   return { date, status: "migrated" };
 }
 
 async function main(): Promise<void> {
+  const dryRun = process.argv.includes("--dry-run");
+
   if (!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)) {
     process.stderr.write(
       "Missing KV_REST_API_URL / KV_REST_API_TOKEN. Add them to .env.local.\n"
@@ -137,26 +146,32 @@ async function main(): Promise<void> {
 
   const dates = (await redis.smembers(keys.dates())) ?? [];
   process.stdout.write(`Found ${dates.length} saved puzzle(s).\n`);
+  if (dryRun) {
+    process.stdout.write("Dry run: no matrices will be written.\n");
+  }
 
   const outcomes: Outcome[] = [];
   for (const date of dates.sort()) {
     try {
-      const outcome = await migrateDate(date);
+      // Keep requests sequential to avoid overwhelming sbsolver or Redis during
+      // this one-time production operation.
+      // biome-ignore lint/performance/noAwaitInLoops: Sequential migration is intentional.
+      const outcome = await migrateDate(date, dryRun);
       outcomes.push(outcome);
       process.stdout.write(`  ${date}: ${outcome.status}\n`);
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
-      outcomes.push({ date, status: "failed", reason });
+      outcomes.push({ date, reason, status: "failed" });
       process.stdout.write(`  ${date}: failed — ${reason}\n`);
     }
   }
 
-  const counts = { failed: 0, migrated: 0, skipped: 0 };
+  const counts = { failed: 0, migrated: 0, skipped: 0, "would-migrate": 0 };
   for (const o of outcomes) {
     counts[o.status] += 1;
   }
   process.stdout.write(
-    `\nDone. ${counts.migrated} migrated, ${counts.skipped} skipped, ${counts.failed} failed.\n`
+    `\nDone. ${counts.migrated} migrated, ${counts["would-migrate"]} would migrate, ${counts.skipped} skipped, ${counts.failed} failed.\n`
   );
 
   const failures = outcomes.filter((o) => o.status === "failed");
