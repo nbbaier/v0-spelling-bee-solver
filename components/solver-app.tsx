@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HintsList } from "@/components/hints-list";
 import { MatrixGrid } from "@/components/matrix-grid";
 import { ProgressSummary } from "@/components/progress-summary";
@@ -40,20 +40,22 @@ export function SolverApp({ date }: SolverAppProps) {
   } = usePuzzle(date);
   const [forceLoader, setForceLoader] = useState(false);
   const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
+  const routeEntry = useRef({ date, evaluated: false });
 
-  // Route entry is the source of the automatic scrape signal. SetupPanel clears
-  // it after consumption; omitting that signal from this effect's dependencies
-  // prevents the clear from re-firing the same route's scrape.
+  // Evaluate each route entry once after its puzzle and date index have loaded.
+  // Later mutations on the same route (notably deletion) must not scrape again.
   useEffect(() => {
-    if (
-      datesReady &&
-      !isSample &&
-      !dates.includes(date) &&
-      !isLoading &&
-      !puzzle
-    ) {
-      setAutoFetchDate(date);
+    if (routeEntry.current.date !== date) {
+      routeEntry.current = { date, evaluated: false };
     }
+    if (!(datesReady && !isLoading) || routeEntry.current.evaluated) {
+      return;
+    }
+    routeEntry.current.evaluated = true;
+    if (isSample || dates.includes(date) || puzzle) {
+      return;
+    }
+    setAutoFetchDate(date);
   }, [date, dates, datesReady, isLoading, isSample, puzzle]);
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle]);
