@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HintsList } from "@/components/hints-list";
 import { MatrixGrid } from "@/components/matrix-grid";
 import { ProgressSummary } from "@/components/progress-summary";
@@ -10,29 +10,21 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { usePuzzle } from "@/hooks/use-puzzle";
 import { derive } from "@/lib/derive";
-import { isSampleId, parseLocalDate, toLocalISO } from "@/lib/keys";
+import { parseLocalDate, SAMPLE_ID, toLocalISO } from "@/lib/keys";
 import { allowedLetters } from "@/lib/letters";
 import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
-const DATE_PARAM_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function getInitialDate(param: string | null): string | undefined {
-  if (!param) {
-    return;
-  }
-  if (isSampleId(param) || DATE_PARAM_RE.test(param)) {
-    return param;
-  }
+interface SolverAppProps {
+  date: string;
 }
 
-export function SolverApp() {
-  const searchParams = useSearchParams();
+const routeForDate = (date: string): string =>
+  date === SAMPLE_ID ? "/sample" : `/${date}`;
+
+export function SolverApp({ date }: SolverAppProps) {
   const router = useRouter();
-  const initialDate = getInitialDate(searchParams.get("date"));
   const {
-    date,
-    setDate,
     isSample,
     puzzle,
     isLoading,
@@ -45,21 +37,26 @@ export function SolverApp() {
     datesError,
     reloadDates,
     clearWords,
-  } = usePuzzle(initialDate);
+  } = usePuzzle(date);
   const [forceLoader, setForceLoader] = useState(false);
+  const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
+  const routeEntry = useRef({ date, evaluated: false });
 
+  // Evaluate each route entry once after its puzzle and date index have loaded.
+  // Later mutations on the same route (notably deletion) must not scrape again.
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (params.get("date") === date) {
+    if (routeEntry.current.date !== date) {
+      routeEntry.current = { date, evaluated: false };
+    }
+    if (!(datesReady && !isLoading) || routeEntry.current.evaluated) {
       return;
     }
-    params.set("date", date);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [date, router, searchParams]);
-  // When the user picks a date that has no saved puzzle, we drop into the loader
-  // and signal SetupPanel to scrape that date automatically. Cleared once the
-  // panel consumes it (see onAutoFetchHandled) so re-selecting a date re-fires.
-  const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
+    routeEntry.current.evaluated = true;
+    if (isSample || dates.includes(date) || puzzle) {
+      return;
+    }
+    setAutoFetchDate(date);
+  }, [date, dates, datesReady, isLoading, isSample, puzzle]);
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle]);
 
@@ -86,16 +83,12 @@ export function SolverApp() {
     return out;
   }, [puzzle, derived]);
 
-  // Unified date selection for both pickers: a date that already has a saved
-  // puzzle switches straight to it; a date without one drops into the loader and
-  // flags it for an automatic scrape.
   const handleDateChange = useCallback(
     (next: string) => {
       setForceLoader(false);
-      setDate(next);
-      setAutoFetchDate(dates.includes(next) ? null : next);
+      router.push(routeForDate(next));
     },
-    [dates, setDate]
+    [router]
   );
 
   const handleDatePickerChange = useCallback(
@@ -125,14 +118,15 @@ export function SolverApp() {
     [dates]
   );
 
-  // onLoad receives the target id (a date string or "sample") from SetupPanel.
-  // Pass it through to savePuzzle so the hook can switch the SWR key atomically.
   const handleLoad = useCallback(
     async (matrix: MatrixData, hints: HintSlot[], id: string) => {
-      await savePuzzle(matrix, hints, id);
+      const savedId = await savePuzzle(matrix, hints, id);
       setForceLoader(false);
+      if (savedId !== date) {
+        router.push(routeForDate(savedId));
+      }
     },
-    [savePuzzle]
+    [date, router, savePuzzle]
   );
 
   const showLoader = !isLoading && (!(puzzle && derived) || forceLoader);

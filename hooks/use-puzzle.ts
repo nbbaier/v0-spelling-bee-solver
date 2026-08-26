@@ -9,7 +9,7 @@ import {
   savePuzzleAction,
   setWordAction,
 } from "@/app/actions";
-import { isSampleId, SAMPLE_ID, todayISO } from "@/lib/keys";
+import { isSampleId } from "@/lib/keys";
 import type { HintSlot, MatrixData, Puzzle } from "@/lib/types";
 
 interface PuzzleResponse {
@@ -31,8 +31,7 @@ const fetcher = async <T>(url: string): Promise<T> => {
 const DATES_KEY = "/api/puzzle/dates";
 const keyForDate = (d: string) => `/api/puzzle?date=${d}`;
 
-export function usePuzzle(initialDate?: string) {
-  const [date, setDate] = useState<string>(initialDate ?? todayISO());
+export function usePuzzle(date: string) {
   const [saving, setSaving] = useState(false);
   const { mutate: globalMutate } = useSWRConfig();
 
@@ -80,7 +79,11 @@ export function usePuzzle(initialDate?: string) {
 
   // Create/replace the puzzle for the current date (or an explicit id, e.g. "sample").
   const savePuzzle = useCallback(
-    async (matrix: MatrixData, hints: HintSlot[], targetId?: string) => {
+    async (
+      matrix: MatrixData,
+      hints: HintSlot[],
+      targetId?: string
+    ): Promise<string> => {
       const id = targetId ?? date;
       const next: Puzzle = { date: id, ...matrix, hints };
       const response: PuzzleResponse = { puzzle: next };
@@ -99,12 +102,11 @@ export function usePuzzle(initialDate?: string) {
           );
         } else {
           // Cross-date save: persist first, then write the target key's cache
-          // via the global mutator and switch to it. The bound mutate is tied to
-          // the current (previous) key, and switching the date first would race
-          // an empty fetch for the target key.
+          // via the global mutator. The bound mutate is tied to the current
+          // (previous) key, and navigating first would race an empty fetch for
+          // the target key.
           await savePuzzleAction(id, matrix, hints);
           await globalMutate(keyForDate(id), response, { revalidate: false });
-          setDate(id);
         }
         if (!isSampleId(id)) {
           await updateDates((current) =>
@@ -113,6 +115,7 @@ export function usePuzzle(initialDate?: string) {
               .reverse()
           );
         }
+        return id;
       } finally {
         setSaving(false);
       }
@@ -207,8 +210,6 @@ export function usePuzzle(initialDate?: string) {
   );
 
   const isSample = isSampleId(date);
-  const loadSample = useCallback(() => setDate(SAMPLE_ID), []);
-
   return {
     clearWords,
     date,
@@ -218,12 +219,10 @@ export function usePuzzle(initialDate?: string) {
     deletePuzzle,
     isLoading,
     isSample,
-    loadSample,
     puzzle,
     reloadDates,
     savePuzzle,
     saving,
-    setDate,
     setWord,
   };
 }
