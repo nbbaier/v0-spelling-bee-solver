@@ -4,7 +4,9 @@
 //
 //   sbs:<ID>:matrix    -> JSON of the parsed grid { letterSet, startLetters, lengths, grid }
 //   sbs:<ID>:prefixes  -> JSON of the hint slots [{ id, prefix, word: null }]
-//   sbs:<ID>:words     -> hash of slotId -> word (mutable progress)
+//   sbs:<ID>:words     -> hash of slotId -> word (mutable progress; legacy
+//                         location — now only the sample and pre-migration data)
+//   sbs:room:<room>:<ID>:words -> same shape, room-scoped progress
 //   sbs:dates          -> set of real puzzle dates (sample is never added here)
 
 export const SAMPLE_ID = "sample";
@@ -14,6 +16,9 @@ export const keys = {
   matrix: (id: string) => `sbs:${id}:matrix`,
   prefixes: (id: string) => `sbs:${id}:prefixes`,
   words: (id: string) => `sbs:${id}:words`,
+  // Room-scoped progress. The legacy words(id) builder stays for the sample
+  // puzzle and not-yet-migrated legacy hashes.
+  roomWords: (room: string, id: string) => `sbs:room:${room}:${id}:words`,
 };
 
 // Returns today's date as an ISO YYYY-MM-DD string in local time.
