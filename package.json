@@ -12,6 +12,7 @@
     "fix": "ultracite fix",
     "lint": "ultracite check",
     "migrate:start-letters": "node --env-file=.env.local --conditions=react-server --import tsx scripts/migrate-letters-to-start-letters.ts",
+    "migrate:words-to-room": "node --env-file=.env.local --conditions=react-server --import tsx scripts/migrate-words-to-room.ts",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest"
