@@ -245,25 +245,25 @@ async function crawlThreeLetter(
   links: { prefix: string; url: string }[]
 ): Promise<{ hintsText: string; failedPrefixes: string[] }> {
   const perPrefix: (string[] | null)[] = new Array(links.length).fill(null);
-  let cursor = 0;
-
-  async function worker(): Promise<void> {
-    while (cursor < links.length) {
-      const index = cursor;
-      cursor += 1;
-      const link = links[index];
-      try {
-        const html = await fetchHtml(link.url);
-        perPrefix[index] = parseThreeLetterCells(parse(html));
-      } catch {
-        perPrefix[index] = null; // marks failure
-      }
+  async function worker(index: number): Promise<void> {
+    if (index >= links.length) {
+      return;
     }
+
+    const link = links[index];
+    try {
+      const html = await fetchHtml(link.url);
+      perPrefix[index] = parseThreeLetterCells(parse(html));
+    } catch {
+      perPrefix[index] = null; // marks failure
+    }
+
+    await worker(index + POOL_SIZE);
   }
 
   const workers = Array.from(
     { length: Math.min(POOL_SIZE, links.length) },
-    worker
+    (_, index) => worker(index)
   );
   await Promise.all(workers);
 

@@ -19,8 +19,5 @@
   }
   </style>
   <rect class="background" height="180" rx="37" width="180" />
-  <path
-    d="M140 92L115 135.3H65L40 92L65 48.7H115L140 92Z"
-    fill="#ebb517"
-  />
+  <path d="M140 92L115 135.3H65L40 92L65 48.7H115L140 92Z" fill="#ebb517" />
 </svg>
