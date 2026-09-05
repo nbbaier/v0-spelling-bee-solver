@@ -4,15 +4,24 @@ import { isSampleId, keys } from "./keys";
 import { redis } from "./redis";
 import type { HintSlot, MatrixData, Puzzle } from "./types";
 
+// Words live either in the legacy global hash (sample only after the words
+// migration) or in a room-scoped hash. `room` null/absent → legacy key.
+function wordsKey(id: string, room?: string | null): string {
+  return room ? keys.roomWords(room, id) : keys.words(id);
+}
+
 // Reads a full puzzle (matrix + hints + entered words) for a date.
 // Returns null if no puzzle has been saved for that date.
-export async function getPuzzle(date: string): Promise<Puzzle | null> {
+export async function getPuzzle(
+  date: string,
+  room?: string | null
+): Promise<Puzzle | null> {
   const [matrix, prefixes, words] = await Promise.all([
     // StoredMatrix, not MatrixData: a row saved before the rename has `letters`
     // and no `startLetters`. assemblePuzzle tolerates either until migrated.
     redis.get<StoredMatrix>(keys.matrix(date)),
     redis.get<HintSlot[]>(keys.prefixes(date)),
-    redis.hgetall<Record<string, string>>(keys.words(date)),
+    redis.hgetall<Record<string, string>>(wordsKey(date, room)),
   ]);
 
   if (!(matrix && prefixes)) {
@@ -49,12 +58,14 @@ export async function savePuzzle(
 export async function setWord(
   date: string,
   slotId: string,
-  word: string | null
+  word: string | null,
+  room?: string | null
 ): Promise<void> {
+  const key = wordsKey(date, room);
   if (word && word.trim().length > 0) {
-    await redis.hset(keys.words(date), { [slotId]: word.trim().toUpperCase() });
+    await redis.hset(key, { [slotId]: word.trim().toUpperCase() });
   } else {
-    await redis.hdel(keys.words(date), slotId);
+    await redis.hdel(key, slotId);
   }
 }
 
@@ -69,22 +80,29 @@ export async function deletePuzzle(date: string): Promise<void> {
     ops.push(redis.srem(keys.dates(), date));
   }
   await Promise.all(ops);
+  // Deliberately NOT enumerating sbs:room:* keys for this date — deleting a
+  // definition doesn't hunt down every room's words. Rooms whose progress
+  // references a deleted definition simply resolve to nothing.
 }
 
 // Clears all entered words for a puzzle, resetting the progress.
-export async function clearAllWords(date: string): Promise<void> {
-  await redis.del(keys.words(date));
+export async function clearAllWords(
+  date: string,
+  room?: string | null
+): Promise<void> {
+  await redis.del(wordsKey(date, room));
 }
 
 // Clears entered words for a specific set of slot IDs.
 export async function clearWordsForSlots(
   date: string,
-  slotIds: string[]
+  slotIds: string[],
+  room?: string | null
 ): Promise<void> {
   if (!slotIds.length) {
     return;
   }
-  await redis.hdel(keys.words(date), ...slotIds);
+  await redis.hdel(wordsKey(date, room), ...slotIds);
 }
 
 // Lists all saved puzzle dates, most recent first.

@@ -1,6 +1,6 @@
 "use server";
 
-import { isValidPuzzleId } from "@/lib/keys";
+import { isSampleId, isValidPuzzleId } from "@/lib/keys";
 import { isPuzzleDateInRange, puzzleNumberForDate } from "@/lib/puzzle-date";
 import {
   clearAllWords,
@@ -9,8 +9,27 @@ import {
   savePuzzle,
   setWord,
 } from "@/lib/puzzle-store";
+import { isValidRoomName } from "@/lib/rooms";
 import { scrapePuzzle } from "@/lib/sbsolver";
 import type { HintSlot, MatrixData } from "@/lib/types";
+
+// Word progress is always room-scoped for real dates; the sample puzzle stays
+// outside the room system entirely. Enforced at every entry point so a missing
+// or malformed room can never route words into the legacy global hash.
+function assertWordsScope(date: string, room?: string | null): void {
+  if (!isValidPuzzleId(date)) {
+    throw new Error("Invalid puzzle id");
+  }
+  if (isSampleId(date)) {
+    if (typeof room === "string") {
+      throw new Error("The sample puzzle cannot belong to a room");
+    }
+    return;
+  }
+  if (!(room && isValidRoomName(room))) {
+    throw new Error("A valid room is required");
+  }
+}
 
 // Discriminated result so user-facing error messages survive Next's
 // production server-action error masking (thrown errors get sanitized).
@@ -102,12 +121,11 @@ export async function savePuzzleAction(
 export async function setWordAction(
   date: string,
   slotId: string,
-  word: string | null
+  word: string | null,
+  room?: string | null
 ) {
-  if (!isValidPuzzleId(date)) {
-    throw new Error("Invalid puzzle id");
-  }
-  await setWord(date, slotId, word);
+  assertWordsScope(date, room);
+  await setWord(date, slotId, word, room);
 }
 
 export async function deletePuzzleAction(date: string) {
@@ -117,19 +135,16 @@ export async function deletePuzzleAction(date: string) {
   await deletePuzzle(date);
 }
 
-export async function clearAllWordsAction(date: string) {
-  if (!isValidPuzzleId(date)) {
-    throw new Error("Invalid puzzle id");
-  }
-  await clearAllWords(date);
+export async function clearAllWordsAction(date: string, room?: string | null) {
+  assertWordsScope(date, room);
+  await clearAllWords(date, room);
 }
 
 export async function clearWordsForSlotsAction(
   date: string,
-  slotIds: string[]
+  slotIds: string[],
+  room?: string | null
 ) {
-  if (!isValidPuzzleId(date)) {
-    throw new Error("Invalid puzzle id");
-  }
-  await clearWordsForSlots(date, slotIds);
+  assertWordsScope(date, room);
+  await clearWordsForSlots(date, slotIds, room);
 }

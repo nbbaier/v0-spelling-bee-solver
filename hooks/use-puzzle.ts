@@ -29,13 +29,20 @@ const fetcher = async <T>(url: string): Promise<T> => {
 };
 
 const DATES_KEY = "/api/puzzle/dates";
-const keyForDate = (d: string) => `/api/puzzle?date=${d}`;
+const keyForDate = (d: string, r?: string | null): string =>
+  `/api/puzzle?date=${d}${r ? `&room=${encodeURIComponent(r)}` : ""}`;
 
-export function usePuzzle(date: string) {
+export function usePuzzle(date: string, room?: string | null) {
   const [saving, setSaving] = useState(false);
   const { mutate: globalMutate } = useSWRConfig();
 
-  const key = keyForDate(date);
+  // The key includes the room so two rooms' views of one date never share a
+  // cache entry. A real date without a resolved room yet (plain /<date> before
+  // the client resolver runs) pauses fetching instead of briefly reading the
+  // legacy non-room words; the sample needs no room and fetches immediately.
+  const isSample = isSampleId(date);
+  const resolvedRoom = isSample ? null : (room ?? null);
+  const key = isSample || resolvedRoom ? keyForDate(date, resolvedRoom) : null;
   const { data, isLoading, mutate } = useSWR<PuzzleResponse>(key, fetcher, {
     revalidateOnFocus: false,
   });
@@ -104,9 +111,12 @@ export function usePuzzle(date: string) {
           // Cross-date save: persist first, then write the target key's cache
           // via the global mutator. The bound mutate is tied to the current
           // (previous) key, and navigating first would race an empty fetch for
-          // the target key.
+          // the target key. Room-scoped: the browser keeps its current room on
+          // the cross-date navigation that follows this save.
           await savePuzzleAction(id, matrix, hints);
-          await globalMutate(keyForDate(id), response, { revalidate: false });
+          await globalMutate(keyForDate(id, resolvedRoom), response, {
+            revalidate: false,
+          });
         }
         if (!isSampleId(id)) {
           await updateDates((current) =>
@@ -120,7 +130,7 @@ export function usePuzzle(date: string) {
         setSaving(false);
       }
     },
-    [date, mutate, globalMutate, updateDates]
+    [date, resolvedRoom, mutate, globalMutate, updateDates]
   );
 
   // Record or clear a found word, with optimistic UI.
@@ -143,13 +153,13 @@ export function usePuzzle(date: string) {
       };
       mutate(
         async (current) => {
-          await setWordAction(date, slotId, cleaned);
+          await setWordAction(date, slotId, cleaned, resolvedRoom);
           return apply(current);
         },
         { optimisticData: apply, revalidate: false }
       );
     },
-    [date, mutate]
+    [date, resolvedRoom, mutate]
   );
 
   // Remove the current puzzle and return to the loader.
@@ -194,9 +204,9 @@ export function usePuzzle(date: string) {
       mutate(
         async (current) => {
           if (targetIds && slotIds) {
-            await clearWordsForSlotsAction(date, slotIds);
+            await clearWordsForSlotsAction(date, slotIds, resolvedRoom);
           } else {
-            await clearAllWordsAction(date);
+            await clearAllWordsAction(date, resolvedRoom);
           }
           return clearScoped(current);
         },
@@ -206,10 +216,9 @@ export function usePuzzle(date: string) {
         }
       );
     },
-    [date, mutate]
+    [date, resolvedRoom, mutate]
   );
 
-  const isSample = isSampleId(date);
   return {
     clearWords,
     date,

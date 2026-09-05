@@ -2,6 +2,37 @@
 
 One-off operational scripts. Not part of the app runtime.
 
+## `migrate-words-to-room.ts`
+
+One-time migration that copies legacy global word progress
+(`sbs:<date>:words`) into a room-scoped hash (`sbs:room:<name>:<date>:words`).
+After the rooms feature, real dates read only the room-scoped key, so legacy
+progress is invisible until it is copied into a room the browsers use.
+
+### Do I need to run it?
+
+Only if legacy progress still matters — i.e. users entered words before rooms
+shipped and expect to see them after deploy. Rooms created in the new UI start
+empty and need nothing.
+
+### Running
+
+```bash
+pnpm migrate:words-to-room -- purple-elephant-kite --dry-run
+pnpm migrate:words-to-room -- purple-elephant-kite
+```
+
+The room name is a required argument (validated; the script refuses malformed
+names) — pick/generated one per group of solvers and tell them to join via
+`/r/<name>`. Needs `KV_REST_API_URL` / `KV_REST_API_TOKEN` from `.env.local`.
+
+It is idempotent: identical re-runs are no-ops, and existing room fields are
+overwritten with the same values. Copies never delete: the legacy keys stay
+until you have verified each room's progress, then remove them manually. Run
+the dry run first — it prints, per date, how many words **would** be copied
+and writes nothing. Not part of any deploy; run once against production after
+the rooms release, with `--dry-run` first.
+
 ## `migrate-letters-to-start-letters.ts`
 
 One-time migration that rebuilds saved matrices under the current shape: the

@@ -9,23 +9,38 @@ import { SetupPanel } from "@/components/setup-panel";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { usePuzzle } from "@/hooks/use-puzzle";
+import { useRoom } from "@/hooks/use-room";
 import { derive } from "@/lib/derive";
-import { parseLocalDate, SAMPLE_ID, toLocalISO } from "@/lib/keys";
+import { isSampleId, parseLocalDate, SAMPLE_ID, toLocalISO } from "@/lib/keys";
 import { allowedLetters } from "@/lib/letters";
 import { FIRST_PUZZLE_ISO, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
 interface SolverAppProps {
   date: string;
+  // Present on /r/<room>/<date>: act as this exact room instead of resolving
+  // the browser's current-room pointer. Server-validated upstream.
+  room?: string | null;
 }
 
 const routeForDate = (date: string): string =>
   date === SAMPLE_ID ? "/sample" : `/${date}`;
 
-export function SolverApp({ date }: SolverAppProps) {
+export function SolverApp({ date, room }: SolverAppProps) {
   const router = useRouter();
+  // Rooms are client-side state: /r/<room> adopts that room explicitly (and
+  // records it as this browser's last visit), a plain /<date> resolves the
+  // current pointer and generates a personal room on first-ever visit.
+  const explicitRoom = typeof room === "string" ? room : undefined;
+  const { room: resolvedRoom, ready: roomReady } = useRoom(
+    explicitRoom,
+    explicitRoom ? date : undefined
+  );
+  const isSample = isSampleId(date);
+  // Sample progress stays outside the room system; everything else binds to
+  // the browser's resolved or URL-specified room.
+  const activeRoom = isSample ? null : (explicitRoom ?? resolvedRoom ?? null);
   const {
-    isSample,
     puzzle,
     isLoading,
     saving,
@@ -37,10 +52,30 @@ export function SolverApp({ date }: SolverAppProps) {
     datesError,
     reloadDates,
     clearWords,
-  } = usePuzzle(date);
+  } = usePuzzle(date, activeRoom);
   const [forceLoader, setForceLoader] = useState(false);
   const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const routeEntry = useRef({ date, evaluated: false });
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The share mechanism is "tell someone the name / send them the /r/ link" —
+  // one affordance covering both. No modal.
+  const handleCopyRoomLink = useCallback(async () => {
+    if (!activeRoom) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/r/${activeRoom}`
+      );
+      setCopied(true);
+      clearTimeout(copyTimer.current ?? undefined);
+      copyTimer.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access may be denied; the room name is still shown above.
+    }
+  }, [activeRoom]);
 
   // Evaluate each route entry once after its puzzle and date index have loaded.
   // Later mutations on the same route (notably deletion) must not scrape again.
@@ -130,6 +165,34 @@ export function SolverApp({ date }: SolverAppProps) {
   );
 
   const showLoader = !isLoading && (!(puzzle && derived) || forceLoader);
+
+  // A plain /<date> visit pauses puzzle fetching until the client resolver has
+  // determined the browser's room (generated on first visit); nothing below can
+  // safely render before that.
+  if (!(isSample || roomReady)) {
+    return (
+      <main className="mx-auto min-h-svh w-full max-w-208 px-4 py-8 sm:px-6 sm:py-12">
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary font-bold text-lg text-primary-foreground">
+              B
+            </div>
+            <div>
+              <h1 className="font-bold text-foreground text-xl tracking-tight">
+                Spelling Bee Solver
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Track the grid and hints as you find words
+              </p>
+            </div>
+          </div>
+        </header>
+        <div className="py-20 text-center text-muted-foreground text-sm">
+          Loading puzzle…
+        </div>
+      </main>
+    );
+  }
 
   // The header date control: a sample badge, an error/retry when the date index
   // failed to load, or the picker (disabled until the index is ready).
@@ -249,6 +312,21 @@ export function SolverApp({ date }: SolverAppProps) {
             <p className="text-muted-foreground text-sm">
               Track the grid and hints as you find words
             </p>
+            {activeRoom ? (
+              <div className="mt-1 flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Room:</span>
+                <code className="font-medium">{activeRoom}</code>
+                <Button
+                  aria-label={`Copy invite link for room ${activeRoom}`}
+                  className="h-auto p-0"
+                  onClick={handleCopyRoomLink}
+                  size="sm"
+                  variant="ghost"
+                >
+                  {copied ? "Copied!" : "Copy link"}
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
 
