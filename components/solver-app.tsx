@@ -38,7 +38,6 @@ export function SolverApp({ date }: SolverAppProps) {
     reloadDates,
     clearWords,
   } = usePuzzle(date);
-  const [forceLoader, setForceLoader] = useState(false);
   const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
   const routeEntry = useRef({ date, evaluated: false });
 
@@ -85,7 +84,6 @@ export function SolverApp({ date }: SolverAppProps) {
 
   const handleDateChange = useCallback(
     (next: string) => {
-      setForceLoader(false);
       router.push(routeForDate(next));
     },
     [router]
@@ -100,16 +98,8 @@ export function SolverApp({ date }: SolverAppProps) {
     reloadDates();
   }, [reloadDates]);
 
-  const handleCancelForceLoader = useCallback(() => {
-    setForceLoader(false);
-  }, []);
-
   const handleAutoFetchHandled = useCallback(() => {
     setAutoFetchDate(null);
-  }, []);
-
-  const handleStartNewPuzzle = useCallback(() => {
-    setForceLoader(true);
   }, []);
 
   // Convert date strings to Date objects for the date picker
@@ -121,7 +111,6 @@ export function SolverApp({ date }: SolverAppProps) {
   const handleLoad = useCallback(
     async (matrix: MatrixData, hints: HintSlot[], id: string) => {
       const savedId = await savePuzzle(matrix, hints, id);
-      setForceLoader(false);
       if (savedId !== date) {
         router.push(routeForDate(savedId));
       }
@@ -129,7 +118,7 @@ export function SolverApp({ date }: SolverAppProps) {
     [date, router, savePuzzle]
   );
 
-  const showLoader = !isLoading && (!(puzzle && derived) || forceLoader);
+  const showLoader = !(isLoading || derived);
 
   // The header date control: a sample badge, an error/retry when the date index
   // failed to load, or the picker (disabled until the index is ready).
@@ -173,20 +162,6 @@ export function SolverApp({ date }: SolverAppProps) {
     if (showLoader) {
       return (
         <div className="space-y-4">
-          {puzzle && forceLoader ? (
-            <div className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
-              <span className="text-muted-foreground">
-                A puzzle already exists for this date. Loading will replace it.
-              </span>
-              <Button
-                onClick={handleCancelForceLoader}
-                size="sm"
-                variant="ghost"
-              >
-                Cancel
-              </Button>
-            </div>
-          ) : null}
           <SetupPanel
             autoFetchDate={autoFetchDate}
             date={date}
@@ -256,11 +231,6 @@ export function SolverApp({ date }: SolverAppProps) {
           {renderHeaderDateControl()}
           {saving ? (
             <span className="text-muted-foreground text-xs">Saving…</span>
-          ) : null}
-          {puzzle && !showLoader ? (
-            <Button onClick={handleStartNewPuzzle} variant="outline">
-              Load new puzzle
-            </Button>
           ) : null}
         </div>
       </header>
