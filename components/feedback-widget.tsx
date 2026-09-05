@@ -79,7 +79,7 @@ export function FeedbackWidget() {
   );
 
   return (
-    <footer className="flex justify-center px-4 py-6">
+    <footer className="fixed right-4 bottom-4 z-40">
       <Dialog.Root onOpenChange={handleOpenChange} open={open}>
         <Dialog.Trigger render={<Button variant="outline" />}>
           Send feedback
