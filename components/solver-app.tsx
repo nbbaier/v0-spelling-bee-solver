@@ -236,7 +236,7 @@ export function SolverApp({ date }: SolverAppProps) {
   };
 
   return (
-    <main className="mx-auto min-h-svh w-full max-w-208 px-4 py-8 sm:px-6 sm:py-12">
+    <main className="mx-auto min-h-svh w-full max-w-208 px-4 pt-8 pb-24 sm:px-6 sm:pt-12">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary font-bold text-lg text-primary-foreground">
