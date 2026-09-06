@@ -218,12 +218,9 @@ export function SolverApp({ date }: SolverAppProps) {
             B
           </div>
           <div>
-            <h1 className="font-bold text-foreground text-xl tracking-tight">
+            <h1 className="font-bold text-2xl text-foreground tracking-tight">
               Spelling Bee Solver
             </h1>
-            <p className="text-muted-foreground text-sm">
-              Track the grid and hints as you find words
-            </p>
           </div>
         </div>
 
