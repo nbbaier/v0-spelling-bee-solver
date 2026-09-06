@@ -12,20 +12,26 @@ export const THEMES = [
   {
     description: "The current look. Warm neutrals, honey accent.",
     id: "base",
-    name: "Honey",
+    name: "Base Honey",
     swatch: ["#fbfaf7", "#f0c34a", "#39362f"],
   },
   {
     description: "Editorial. Paper background, serif headings, vermilion ink.",
     id: "ink",
-    name: "Ink",
+    name: "Base Ink",
     swatch: ["#f5f1e8", "#c9482a", "#2a241c"],
   },
   {
-    description: "Ink's serif heading and flat cards on Honey's colors.",
-    id: "honey-ink",
-    name: "Honey Ink",
+    description: "Honey colors, 0.5rem radius, Ink typography and flat cards.",
+    id: "honey-ink-1",
+    name: "Honey Ink 1",
     swatch: ["#fbfaf7", "#f0c34a", "#2a241c"],
+  },
+  {
+    description: "Honey colors, 0.5rem radius, Honey typography, flat cards.",
+    id: "honey-ink-2",
+    name: "Honey Ink 2",
+    swatch: ["#fbfaf7", "#f0c34a", "#39362f"],
   },
 ] as const satisfies readonly ThemeOption[];
 

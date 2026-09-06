@@ -260,9 +260,9 @@ html[data-theme="ink"].dark {
   }
 }
 
-/* Honey Ink — Ink's typography and flat surfaces on the base Honey palette.
+/* Honey Ink 1 — Ink's typography and flat surfaces on the base Honey palette.
  * Colors are inherited from :root (and its dark counterparts). */
-html[data-theme="honey-ink"] {
+html[data-theme="honey-ink-1"] {
   --app-font-heading: var(--font-newsreader), Georgia, "Times New Roman", serif;
   --radius: 0.5rem;
 
@@ -272,6 +272,15 @@ html[data-theme="honey-ink"] {
     font-weight: 500;
     letter-spacing: -0.01em;
   }
+  .shadow-sm {
+    box-shadow: none;
+  }
+}
+
+/* Honey Ink 2 — Honey palette and typography, Ink's flat surfaces, 0.5rem radius. */
+html[data-theme="honey-ink-2"] {
+  --radius: 0.5rem;
+
   .shadow-sm {
     box-shadow: none;
   }
