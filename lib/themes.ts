@@ -22,22 +22,10 @@ export const THEMES = [
     swatch: ["#f5f1e8", "#c9482a", "#2a241c"],
   },
   {
-    description: "Cool and modern. Indigo accent, soft rounded surfaces.",
-    id: "slate",
-    name: "Slate",
-    swatch: ["#f5f6fa", "#5b5bd6", "#2b2f45"],
-  },
-  {
-    description: "Terminal. Monospace everywhere, hard edges, acid accent.",
-    id: "mono",
-    name: "Mono",
-    swatch: ["#fdfdfd", "#c8f542", "#111111"],
-  },
-  {
-    description: "Soft and playful. Sage green, rounded type, peach accent.",
-    id: "meadow",
-    name: "Meadow",
-    swatch: ["#f4f9f4", "#7cc48f", "#2f4a3a"],
+    description: "Ink's serif heading and flat cards on Honey's colors.",
+    id: "honey-ink",
+    name: "Honey Ink",
+    swatch: ["#fbfaf7", "#f0c34a", "#2a241c"],
   },
 ] as const satisfies readonly ThemeOption[];
 

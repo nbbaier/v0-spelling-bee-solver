@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Newsreader, Nunito } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { FeedbackWidget } from "@/components/feedback-widget";
 import { ThemePicker } from "@/components/theme-picker";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, THEMES } from "@/lib/themes";
@@ -16,7 +16,6 @@ const newsreader = Newsreader({
   subsets: ["latin"],
   variable: "--font-newsreader",
 });
-const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito" });
 
 // Applies the chosen theme before first paint so variants don't flash.
 // `?theme=<id>` in the URL wins and is persisted; otherwise localStorage.
@@ -62,7 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${nunito.variable} bg-background`}
+      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} bg-background`}
       lang="en"
     >
       <head>
