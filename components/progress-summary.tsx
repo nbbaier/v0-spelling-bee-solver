@@ -8,7 +8,7 @@ export function ProgressSummary({ derived }: { derived: Derived }) {
   const remaining = Math.max(0, totalWords - foundWords);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">

@@ -123,8 +123,8 @@ export function MatrixGrid({
   const letterSet = normalizeLetterSet(puzzle.letterSet).split("");
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-      <table className="w-full border-collapse">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">
+      <table className="w-full border-collapse border-hidden">
         <thead>
           <tr>
             <th className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">

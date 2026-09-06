@@ -125,7 +125,7 @@ export function SolverApp({ date }: SolverAppProps) {
   const renderHeaderDateControl = () => {
     if (isSample) {
       return (
-        <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-primary-foreground/80 text-xs">
+        <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-foreground/80 text-xs">
           Sample data
         </span>
       );
@@ -180,8 +180,8 @@ export function SolverApp({ date }: SolverAppProps) {
 
     if (puzzle && derived) {
       return (
-        <div className="grid grid-cols-1 gap-6">
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-4">
             <ProgressSummary derived={derived} />
             <MatrixGrid derived={derived} puzzle={puzzle} />
           </div>
