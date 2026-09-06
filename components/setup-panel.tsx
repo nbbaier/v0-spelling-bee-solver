@@ -512,7 +512,7 @@ export function SetupPanel({
 
   return (
     <div className="w-full">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
         <div className="mb-6 space-y-1.5">
           <h2 className="font-semibold text-card-foreground text-lg">
             Load a puzzle

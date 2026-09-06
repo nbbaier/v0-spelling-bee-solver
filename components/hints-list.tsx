@@ -337,7 +337,7 @@ export function HintsList({
   );
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
       {/* Header row */}
       <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">

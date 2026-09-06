@@ -218,7 +218,7 @@ export function SolverApp({ date }: SolverAppProps) {
             B
           </div>
           <div>
-            <h1 className="font-bold font-heading text-foreground text-xl tracking-tight">
+            <h1 className="font-bold text-foreground text-xl tracking-tight">
               Spelling Bee Solver
             </h1>
             <p className="text-muted-foreground text-sm">
