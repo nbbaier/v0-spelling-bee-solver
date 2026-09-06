@@ -1,17 +1,14 @@
-// A realistic dummy puzzle for development, so you can iron out kinks
-// without copying from sbsolver. The matrix is tab-separated like a real
-// sbsolver paste (with a totals row/column that the parser ignores).
-
+/** Center letter of the development dummy puzzle. */
 export const SAMPLE_CENTER_LETTER = "O";
-
-// All seven letters of the sample puzzle (center O included). The grid only
-// lists start letters D/G/N/O/R, but the answers also use U and I mid-word
-// (e.g. DUN, RID), so those belong to the set even though they begin no row.
+/** Authoritative 7-letter set of the development dummy puzzle. */
 export const SAMPLE_LETTER_SET = "DGNORUI";
-
-// Dummy pangram count — its purpose is exercising the footer display.
+/** Pangram count of the development dummy puzzle. */
 export const SAMPLE_PANGRAM_COUNT = 1;
 
+/**
+ * Tab-separated matrix paste for the development dummy puzzle, including
+ * totals row/column that `parseMatrix` ignores.
+ */
 export const SAMPLE_MATRIX = [
   "\t4\t5\t6\t7\tΣ",
   "D\t2\t3\t1\t1\t7",
@@ -22,6 +19,7 @@ export const SAMPLE_MATRIX = [
   "Σ\t6\t8\t5\t3\t22",
 ].join("\n");
 
+/** `"PREFIX xN"` hint tallies for the development dummy puzzle. */
 export const SAMPLE_HINTS = [
   "DON x2  DOO x1  DRO x2  DUN x2",
   "GON x2  GRO x2",

@@ -7,17 +7,27 @@ const MAX_TITLE_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 5000;
 const HOURLY_LIMIT = 20;
 
+/** Outcome of submitting in-app feedback as a GitHub issue. */
 export type FeedbackResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
-// Shared across server instances; expiration and increment happen atomically.
 const RATE_LIMIT_SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('EXPIRE', KEYS[1], 3600) end
 return count
 `;
 
+/**
+ * Creates a GitHub issue from the feedback widget, rate-limited to
+ * 20 submissions per hour.
+ *
+ * On GitHub errors after the request is sent, does not retry — a timeout can
+ * happen after the issue is created.
+ *
+ * @param title - Issue title; must be a non-empty string of at most 120 characters.
+ * @param description - Issue body; must be a non-empty string of at most 5,000 characters.
+ */
 export async function createFeedback(
   title: unknown,
   description: unknown
@@ -104,7 +114,6 @@ export async function createFeedback(
       url: `https://github.com/${REPOSITORY}/issues/${issue.number}`,
     };
   } catch {
-    // A timeout can happen after GitHub creates the issue. Never retry automatically.
     return {
       error:
         "We could not confirm whether GitHub received your feedback. Check the repository issues before retrying to avoid a duplicate.",

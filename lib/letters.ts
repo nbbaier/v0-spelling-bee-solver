@@ -2,16 +2,15 @@ import type { Puzzle } from "./types";
 
 const LETTER_RE = /[A-Za-z]/;
 
-// The letters a valid answer may use: the union of the authoritative 7-letter
-// `letterSet` and the grid's start letters.
-//
-// The set adds the mid-word-only letters that fix #19 (a valid word using a
-// puzzle letter that begins no answer). Unioning in the start letters guarantees
-// validation is never *stricter* than start-letters-only — every start letter is
-// by definition a puzzle letter, so an incomplete, unknown (""), or malformed
-// stored set degrades to at-least-startLetters instead of wrongly rejecting
-// valid words. In the normal case a complete set already contains every start
-// letter, so the union is just the set itself. See CONTEXT.md → Letter set.
+/**
+ * Letters a valid answer may use: the union of {@link Puzzle.letterSet} and
+ * the grid's start letters.
+ *
+ * Unioning start letters keeps validation from becoming stricter than
+ * start-letters-only when the stored set is empty, incomplete, or malformed.
+ * A complete set already contains every start letter, so the union is a no-op.
+ * See CONTEXT.md → Letter set.
+ */
 export function allowedLetters(
   puzzle: Pick<Puzzle, "letterSet" | "startLetters">
 ): string[] {
@@ -22,7 +21,7 @@ export function allowedLetters(
   return Array.from(allowed);
 }
 
-// Returns true if every character in `word` is in the allowed set.
+/** Whether every character in `word` appears in `allowed`. */
 export function hasOnlyAllowedLetters(
   word: string,
   allowed: string[]
@@ -34,9 +33,10 @@ export function hasOnlyAllowedLetters(
     .every((ch) => set.has(ch));
 }
 
-// Normalizes a raw letter-set string (e.g. a scrape value or user input) to the
-// canonical form stored on MatrixData: uppercase letters only, duplicates
-// removed, order preserved.
+/**
+ * Canonical letter-set form: uppercase letters only, duplicates removed,
+ * first-seen order preserved.
+ */
 export function normalizeLetterSet(raw: string): string {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -49,12 +49,11 @@ export function normalizeLetterSet(raw: string): string {
   return out.join("");
 }
 
-// Whether a hand-confirmed letter set is authoritative: all seven puzzle letters
-// AND every grid start letter. Requiring the start letters closes a hole — a
-// 7-letter set that omitted a start letter would be unioned back to eight
-// allowed letters by allowedLetters(), letting the erroneous extra letter pass
-// validation. An authoritative set is a superset of the start letters, so that
-// union is a no-op. See components/setup-panel.tsx.
+/**
+ * Whether a confirmed letter set is authoritative: exactly seven letters and a
+ * superset of every grid start letter. Requiring the start letters prevents a
+ * 7-letter set that omitted one from being unioned to eight allowed letters.
+ */
 export function isCompleteLetterSet(
   letterSet: string,
   startLetters: string[]

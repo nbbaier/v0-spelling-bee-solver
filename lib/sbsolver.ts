@@ -15,33 +15,36 @@ const ALLOWED_HOST = "www.sbsolver.com";
 const POOL_SIZE = 5;
 
 const PUZZLE_PATH_RE = /^\/(?:nt|n|s)\/([A-Za-z0-9]+)/;
-// sbsolver prefix links now carry an optional puzzle-number segment, e.g.
-// "/nt/Rdginow/2965/do#3ltr"; older pages used "/nt/Rdginow/do". Accept both.
+/** Prefix links may be `/nt/<id>/<prefix>` or `/nt/<id>/<number>/<prefix>`. */
 const PREFIX_HREF_RE = /\/nt\/[A-Za-z]+(?:\/\d+)?\/([a-z]{2})(?:[#?].*)?$/;
 const THREE_LETTER_RE = /[A-Za-z]{2,}\s*[x×*]\s*\d+/;
 const TITLE_DATE_RE = /([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/;
-// "center letter R" — the alt text on the hive's yellow hexagon.
+/** Hive yellow-hexagon alt text, e.g. `"center letter R"`. */
 const CENTER_ALT_RE = /^center letter ([A-Za-z])$/;
-// The #string input capitalizes the center letter (e.g. "Rdginow"); first
-// uppercase letter is the center.
 const FIRST_UPPERCASE_RE = /[A-Z]/;
-// Every letter in the #string input value.
 const LETTER_RE = /[A-Za-z]/g;
 
+/** Parsed fields from a sbsolver puzzle page, as text the setup form consumes. */
 export interface ScrapeResult {
-  // The puzzle's center letter (uppercase), or null if it couldn't be found.
+  /** Uppercase center letter, or `null` if it could not be read. */
   centerLetter: string | null;
-  // ISO YYYY-MM-DD scraped from the page, or null if it couldn't be found.
+  /** Puzzle date as `YYYY-MM-DD`, or `null` if it could not be read. */
   date: string | null;
-  // 2-letter prefixes whose 3-letter page failed to fetch/parse.
+  /** 2-letter prefixes whose 3-letter page failed to fetch or parse. */
   failedPrefixes: string[];
+  /** Space-separated `"PREFIX xN"` tallies. */
   hintsText: string;
-  // The puzzle's authoritative 7-letter set (uppercase, deduped), or "" if the
-  // #string input couldn't be read. See CONTEXT.md → Letter set.
+  /**
+   * Authoritative 7-letter set (uppercase, deduped), or `""` if `#string`
+   * could not be read. See CONTEXT.md → Letter set.
+   */
   letterSet: string;
+  /** Tab-separated grid including totals; `parseMatrix` ignores non-data cells. */
   matrixText: string;
-  // Number of pangrams stated in the page's stats block, or null if it
-  // couldn't be found. See CONTEXT.md → Pangram.
+  /**
+   * Pangram count from the stats block, or `null` if unreadable.
+   * See CONTEXT.md → Pangram.
+   */
   pangramCount: number | null;
 }
 
@@ -60,7 +63,6 @@ const MONTHS: Record<string, number> = {
   september: 9,
 };
 
-// Collapse &nbsp;/whitespace to single spaces and trim.
 function clean(text: string): string {
   return text
     .replace(/&nbsp;/gi, " ")
@@ -69,6 +71,10 @@ function clean(text: string): string {
     .trim();
 }
 
+/**
+ * Validates and normalizes a sbsolver URL to `https://www.sbsolver.com/nt/<id>`.
+ * Accepts `/nt/`, `/n/`, and `/s/` puzzle paths.
+ */
 function validateUrl(raw: string): URL {
   let u: URL;
   try {
@@ -82,9 +88,6 @@ function validateUrl(raw: string): URL {
   if (u.hostname !== ALLOWED_HOST) {
     throw new Error(`Only ${ALLOWED_HOST} URLs are supported.`);
   }
-  // Accept both the "/nt/<id>" (2-letter tally) and "/n/<id>" (Basic) puzzle
-  // pages. The Basic page has the grid but no 2-letter tally to crawl, so
-  // normalize either form to "/nt/<id>" — the page that carries the hints.
   const m = u.pathname.match(PUZZLE_PATH_RE);
   if (!m) {
     throw new Error(
@@ -109,9 +112,7 @@ async function fetchHtml(url: string): Promise<string> {
 
 type Root = ReturnType<typeof parse>;
 
-// Rebuild the tab-separated grid from the `bee bee-grid` table. We emit each
-// cell verbatim ("-" for empties, "tot"/Σ rows and columns included); parseMatrix
-// ignores non-letter rows and non-integer header cells, so no cleanup is needed.
+/** Rebuilds the tab-separated grid from `table.bee-grid`, cells verbatim. */
 function parseMatrixTable(root: Root): string {
   const table = root.querySelector("table.bee-grid");
   if (!table) {
@@ -131,7 +132,7 @@ function parseMatrixTable(root: Root): string {
   return lines.join("\n");
 }
 
-// Collect the 2-letter prefix pages to crawl, in page order, deduped.
+/** Deduped 2-letter prefix pages to crawl, in page order. */
 function parsePrefixLinks(
   root: Root,
   baseUrl: string
@@ -160,8 +161,7 @@ function parsePrefixLinks(
   return links;
 }
 
-// On a single prefix's page, the `bee-three` cells hold its 3-letter tallies,
-// e.g. "DRO x 4". parseHints accepts the spaces-around-x form as-is.
+/** 3-letter tallies from `td.bee-three` (e.g. `"DRO x 4"`). */
 function parseThreeLetterCells(root: Root): string[] {
   return root
     .querySelectorAll("td.bee-three")
@@ -169,13 +169,11 @@ function parseThreeLetterCells(root: Root): string[] {
     .filter((t) => THREE_LETTER_RE.test(t));
 }
 
+/**
+ * Puzzle date from the page `<title>` (e.g. `"June 2, 2026 | …"`).
+ * Does not use HTML build comments — those are generation timestamps, not the puzzle date.
+ */
 function parseDate(root: Root): string | null {
-  // The puzzle's own date is the human date in the <title> / crumb,
-  // e.g. "June 2, 2026 | 2-Letter Spelling Bee Hints".
-  //
-  // Do NOT use the trailing build comment (<!-- ... 2026-06-20 ... -->): that's
-  // the page-generation timestamp (i.e. today), not the puzzle's date — it only
-  // matched by coincidence when fetching the current day's puzzle.
   const title = root.querySelector("title")?.text ?? "";
   const dm = title.match(TITLE_DATE_RE);
   if (dm) {
@@ -187,10 +185,10 @@ function parseDate(root: Root): string | null {
   return null;
 }
 
-// The center letter is the one sbsolver renders on the hive's yellow hexagon.
-// Primary signal: that <img>'s alt text is literally "center letter R".
-// Fallback: the #string input capitalizes the center letter in its value
-// (e.g. "Rdginow"), which also matches sbsolver's URL-path convention.
+/**
+ * Center letter from the hive image alt (`"center letter R"`), falling back to
+ * the first uppercase character in `#string` (e.g. `"Rdginow"`).
+ */
 function parseCenterLetter(root: Root): string | null {
   for (const img of root.querySelectorAll("img")) {
     const alt = img.getAttribute("alt") ?? "";
@@ -204,10 +202,10 @@ function parseCenterLetter(root: Root): string | null {
   return m ? m[0] : null;
 }
 
-// The puzzle's full letter set is the #string input value (e.g. "Rdginow"),
-// which lists all seven letters with the center capitalized. We take every
-// letter, uppercase it, and drop duplicates while preserving order. Returns ""
-// when the input is absent so callers can treat it as "unknown".
+/**
+ * Letter set from `#string` (e.g. `"Rdginow"`): every letter, uppercased,
+ * duplicates dropped, order preserved. Returns `""` when the input is absent.
+ */
 export function parseLetterSet(root: Root): string {
   const value = root.querySelector("input#string")?.getAttribute("value") ?? "";
   const letters = value.match(LETTER_RE);
@@ -226,9 +224,10 @@ export function parseLetterSet(root: Root): string {
   return result.join("");
 }
 
-// The stats block renders "<b>pangrams:</b> 3<br>". Find the <b> whose
-// cleaned text is exactly "pangrams:" and parse the integer from the text that
-// follows it. Returns null when absent/unreadable so callers treat it as unknown.
+/**
+ * Pangram count from the stats `<b>pangrams:</b>` sibling text, or `null`
+ * when absent or unreadable.
+ */
 export function parsePangramCount(root: Root): number | null {
   for (const b of root.querySelectorAll("b")) {
     if (clean(b.text) !== "pangrams:") {
@@ -240,7 +239,7 @@ export function parsePangramCount(root: Root): number | null {
   return null;
 }
 
-// Fetch every prefix page with a bounded concurrency pool, preserving page order.
+/** Fetches prefix pages with a bounded pool, preserving page order. */
 async function crawlThreeLetter(
   links: { prefix: string; url: string }[]
 ): Promise<{ hintsText: string; failedPrefixes: string[] }> {
@@ -255,7 +254,7 @@ async function crawlThreeLetter(
       const html = await fetchHtml(link.url);
       perPrefix[index] = parseThreeLetterCells(parse(html));
     } catch {
-      perPrefix[index] = null; // marks failure
+      perPrefix[index] = null;
     }
 
     await worker(index + POOL_SIZE);
@@ -280,6 +279,12 @@ async function crawlThreeLetter(
   return { failedPrefixes, hintsText: tallies.join("  ") };
 }
 
+/**
+ * Fetches `rawUrl`, crawls 3-letter prefix pages, and returns scrape fields
+ * for the setup form.
+ *
+ * @throws {Error} If the URL is invalid, the page is not a puzzle, or no hints can be read.
+ */
 export async function scrapePuzzle(rawUrl: string): Promise<ScrapeResult> {
   const url = validateUrl(rawUrl);
   const root = parse(await fetchHtml(url.toString()));

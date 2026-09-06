@@ -13,8 +13,6 @@ export async function GET(request: Request) {
     );
   }
 
-  // The date index is served separately (/api/puzzle/dates) so it isn't
-  // duplicated and left stale across per-date caches.
   const puzzle = await getPuzzle(date);
   return NextResponse.json({ puzzle });
 }

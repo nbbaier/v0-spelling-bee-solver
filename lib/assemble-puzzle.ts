@@ -1,28 +1,34 @@
 import type { HintSlot, MatrixData, Puzzle } from "./types";
 
-// A matrix as read back from Redis. Rows persisted before the
-// letters→startLetters rename carry the legacy `letters` field and no
-// `startLetters`, so both are optional here. The migration script
-// (scripts/migrate-letters-to-start-letters.ts) rewrites old rows, but it is
-// manual and may not have run yet, so reads must tolerate either shape.
+/**
+ * Matrix as read back from Redis.
+ *
+ * Rows persisted before the `letters` → `startLetters` rename, or before
+ * `letterSet` / `pangramCount` existed, omit those fields. {@link assemblePuzzle}
+ * fills in defaults until `scripts/migrate-letters-to-start-letters.ts` has run.
+ */
 export type StoredMatrix = Omit<
   MatrixData,
   "startLetters" | "letterSet" | "pangramCount"
 > & {
   startLetters?: string[];
+  /** Legacy row-label field; treated as {@link MatrixData.startLetters}. */
   letters?: string[];
-  // Absent on rows persisted before the letterSet slice; assemblePuzzle
-  // defaults it to "" (unknown), which validation treats as "fall back to
-  // startLetters".
+  /** Absent on older rows; defaults to `""` (unknown). */
   letterSet?: string;
-  // Absent on rows persisted before the pangramCount slice; assemblePuzzle
-  // defaults it to null (unknown).
+  /** Absent on older rows; defaults to `null` (unknown). */
   pangramCount?: number | null;
 };
 
-// Combines the stored matrix, hint prefix slots, and entered words into a
-// Puzzle. Pure (no I/O) so the read-time shape mapping — including the legacy
-// `letters` fallback — can be characterized in isolation.
+/**
+ * Combines stored matrix, prefix slots, and entered words into a {@link Puzzle}.
+ * Pure: maps the legacy `letters` field onto `startLetters` when needed.
+ *
+ * @param date - Puzzle date or sample id.
+ * @param matrix - Stored matrix, possibly using legacy field names.
+ * @param prefixes - Hint slots as stored (typically `word: null`).
+ * @param words - Hash of slot id → entered word, or `null` if none.
+ */
 export function assemblePuzzle(
   date: string,
   matrix: StoredMatrix,
@@ -40,13 +46,8 @@ export function assemblePuzzle(
     grid: matrix.grid,
     hints,
     lengths: matrix.lengths,
-    // Empty string when the row predates letterSet; validation then falls back
-    // to startLetters (see lib/letters.ts → allowedLetters).
     letterSet: matrix.letterSet ?? "",
-    // Null when the row predates pangramCount — "unknown", not zero.
     pangramCount: matrix.pangramCount ?? null,
-    // Fall back to the legacy field for not-yet-migrated rows. Empty array as a
-    // last resort keeps derive()/the grid from crashing on malformed data.
     startLetters: matrix.startLetters ?? matrix.letters ?? [],
   };
 }

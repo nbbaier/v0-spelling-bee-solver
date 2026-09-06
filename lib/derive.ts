@@ -1,18 +1,29 @@
 import type { Puzzle } from "./types";
 
+/** Running counts of found vs remaining answers, by start letter and word length. */
 export interface Derived {
-  // found[letter][length] = number of words entered for that cell
+  /** `found[letter][length]` = number of entered words in that cell. */
   found: Record<string, Record<number, number>>;
+  /** Number of hint slots that currently have a word. */
   foundWords: number;
+  /** Entered-word count keyed by word length. */
   lengthFound: Record<number, number>;
-  // per-length progress
+  /** Matrix totals keyed by word length. */
   lengthTotals: Record<number, number>;
+  /** Entered-word count keyed by start letter. */
   letterFound: Record<string, number>;
-  // per-letter progress
+  /** Matrix totals keyed by start letter. */
   letterTotals: Record<string, number>;
+  /** Sum of all matrix cells (total answers). */
   totalWords: number;
 }
 
+/**
+ * Computes found/remaining tallies from a puzzle's matrix and entered words.
+ *
+ * @param puzzle - The puzzle to derive statistics from.
+ * @returns An object containing the derived statistics.
+ */
 export function derive(puzzle: Puzzle): Derived {
   const found: Record<string, Record<number, number>> = {};
   const lengthTotals: Record<number, number> = {};

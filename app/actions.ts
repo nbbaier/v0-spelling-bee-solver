@@ -12,21 +12,32 @@ import {
 import { scrapePuzzle } from "@/lib/sbsolver";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
-// Discriminated result so user-facing error messages survive Next's
-// production server-action error masking (thrown errors get sanitized).
+/** Outcome of fetching a puzzle from sbsolver for the setup form. */
 export type FetchPuzzleResult =
   | {
       ok: true;
+      /** Uppercase center letter, or `null` if it could not be read. */
       centerLetter: string | null;
+      /** Authoritative 7-letter set, or `""` if unknown. */
       letterSet: string;
+      /** Tab-separated grid paste for the matrix textarea. */
       matrixText: string;
+      /** `"PREFIX xN"` tallies for the hints textarea. */
       hintsText: string;
+      /** Puzzle date as `YYYY-MM-DD`, or `null` if it could not be read. */
       date: string | null;
+      /** Pangram count from the page, or `null` if unreadable. */
       pangramCount: number | null;
+      /** 2-letter prefixes whose 3-letter page failed to fetch or parse. */
       failedPrefixes: string[];
     }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      /** User-facing reason the scrape failed. */
+      error: string;
+    };
 
+/** Scrapes `url` via {@link scrapePuzzle}, mapping thrown errors to `{ ok: false }`. */
 async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
   try {
     const {
@@ -56,27 +67,27 @@ async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
   }
 }
 
+/** Scrapes an sbsolver puzzle URL into setup-form text fields. */
 export async function fetchPuzzleFromUrlAction(
   url: string
 ): Promise<FetchPuzzleResult> {
   return await fetchPuzzle(url);
 }
 
+/**
+ * Scrapes the sbsolver puzzle for `dateIso` via `/nt/<number>`.
+ *
+ * Rejects a scrape whose page date does not match `dateIso` (including a missing
+ * date), so a numbering gap cannot store one day's puzzle under another date.
+ */
 export async function fetchPuzzleByDateAction(
   dateIso: string
 ): Promise<FetchPuzzleResult> {
   if (!isPuzzleDateInRange(dateIso)) {
     return { error: "No puzzle is available for that date.", ok: false };
   }
-  // sbsolver accepts the numeric puzzle id directly (/nt/<number>), so the date
-  // resolves to a URL with no extra lookup. See lib/puzzle-date.ts.
   const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(dateIso)}`;
   const result = await fetchPuzzle(url);
-  // The date→number mapping assumes contiguous daily numbering; a gap, redirect,
-  // or upstream change could resolve to a different day. The page states its own
-  // date, so only accept a scrape whose date matches the request — and treat a
-  // missing date (markup we couldn't read) as a verification failure too, rather
-  // than silently storing one day's puzzle under another date.
   if (result.ok && result.date !== dateIso) {
     return {
       error: result.date
@@ -88,6 +99,7 @@ export async function fetchPuzzleByDateAction(
   return result;
 }
 
+/** Persists a puzzle definition. Throws if `date` is not a valid puzzle id. */
 export async function savePuzzleAction(
   date: string,
   matrix: MatrixData,
@@ -99,6 +111,7 @@ export async function savePuzzleAction(
   await savePuzzle(date, matrix, hints);
 }
 
+/** Sets or clears the word for one hint slot. Throws if `date` is invalid. */
 export async function setWordAction(
   date: string,
   slotId: string,
@@ -110,6 +123,7 @@ export async function setWordAction(
   await setWord(date, slotId, word);
 }
 
+/** Deletes a puzzle and its progress. Throws if `date` is invalid. */
 export async function deletePuzzleAction(date: string) {
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
@@ -117,6 +131,7 @@ export async function deletePuzzleAction(date: string) {
   await deletePuzzle(date);
 }
 
+/** Clears all entered words for a puzzle. Throws if `date` is invalid. */
 export async function clearAllWordsAction(date: string) {
   if (!isValidPuzzleId(date)) {
     throw new Error("Invalid puzzle id");
@@ -124,6 +139,7 @@ export async function clearAllWordsAction(date: string) {
   await clearAllWords(date);
 }
 
+/** Clears entered words for the given slot ids. Throws if `date` is invalid. */
 export async function clearWordsForSlotsAction(
   date: string,
   slotIds: string[]

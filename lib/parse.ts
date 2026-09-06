@@ -6,14 +6,12 @@ const TRAILING_WS_RE = /\s+$/;
 const INT_RE = /^\d+$/;
 const HINT_RE = /([A-Za-z]{2,})\s*[x×*]\s*(\d+)/g;
 
+/** Output of {@link parseMatrix}; `centerLetter` is always `null` (the grid has none). */
 export interface MatrixParseResult {
-  // The tab-separated grid carries no center-letter information, so the parser
-  // always yields null. The setup flow fills this in from the sbsolver scrape
-  // or the manual selector before saving.
   centerLetter: string | null;
   grid: Record<string, Record<number, number>>;
   lengths: number[];
-  // Row labels of the grid (start letters of answers). See MatrixData.startLetters.
+  /** Row labels of the grid (start letters of answers). */
   startLetters: string[];
 }
 
@@ -25,7 +23,7 @@ function toLines(raw: string): string[] {
     .filter((l) => l.trim().length > 0);
 }
 
-/** Finds the first row containing an integer cell (the word-length header). */
+/** First row that contains an integer cell (the word-length header). */
 function findHeader(lines: string[]): { index: number; cells: string[] } {
   for (const [index, line] of lines.entries()) {
     const cells = line.split("\t").map((c) => c.trim());
@@ -36,7 +34,7 @@ function findHeader(lines: string[]): { index: number; cells: string[] } {
   return { cells: [], index: -1 };
 }
 
-/** Adds a single data row's counts into the grid, if it starts with a letter. */
+/** Adds a data row's counts into `grid` when the row starts with a letter. */
 function addRow(
   line: string,
   columnLengths: (number | null)[],
@@ -46,7 +44,7 @@ function addRow(
   const cells = line.split("\t").map((c) => c.trim());
   const [label] = cells;
   if (!LETTER_RE.test(label)) {
-    return; // skip totals / blank rows
+    return;
   }
 
   const letter = label.toUpperCase();
@@ -68,20 +66,20 @@ function addRow(
 }
 
 /**
- * Parses the tab-separated grid copied from sbsolver.
+ * Parses a tab-separated sbsolver grid into {@link MatrixParseResult}.
  *
- * Expected shape (tabs between cells):
- *   [label]  4   5   6   7   Σ
- *   A        1   2       1   4
- *   B            3   1       4
- *   Σ        1   5   1   1   8
+ * Expected shape:
+ * ```
+ * [label]  4   5   6   7   Σ
+ * A        1   2       1   4
+ * B            3   1       4
+ * Σ        1   5   1   1   8
+ * ```
  *
- * - The first row contains word-length numbers (any non-integer header cell,
- *   such as a total "Σ", is ignored).
- * - Each data row starts with a single letter. Rows that do not start with a
- *   single letter (e.g. the "Σ" total row) are ignored.
- * - Empty cells count as 0. Totals are recomputed by the app, so they are not
- *   stored here.
+ * Non-integer header cells and non-letter rows (totals) are ignored.
+ * Empty cells count as 0. Totals are not stored from the paste.
+ *
+ * @throws {Error} If no header or letter rows are found.
  */
 export function parseMatrix(raw: string): MatrixParseResult {
   const lines = toLines(raw);
@@ -99,12 +97,10 @@ export function parseMatrix(raw: string): MatrixParseResult {
     );
   }
 
-  // Map each column index to a word length (or null for label/total columns).
   const columnLengths: (number | null)[] = header.cells.map((c) =>
     INT_RE.test(c) ? Number.parseInt(c, 10) : null
   );
   const lengths = columnLengths.filter((n): n is number => n !== null);
-  // De-dupe and sort ascending.
   const uniqueLengths = Array.from(new Set(lengths)).sort((a, b) => a - b);
 
   const startLetters: string[] = [];
@@ -124,10 +120,11 @@ export function parseMatrix(raw: string): MatrixParseResult {
 }
 
 /**
- * Parses the hint list, e.g. "DON x1 DOO x1 DRO x4".
- * Expands each prefix into N slots (one per word) and sorts the resulting
- * slots alphabetically by prefix, preserving input order within each
- * prefix so filled words appear top-down.
+ * Parses `"PREFIX xN"` tallies (e.g. `"DON x1 DOO x1 DRO x4"`) into one
+ * {@link HintSlot} per word. Slots are sorted by prefix; order within a prefix
+ * follows the input so filled words stay top-down.
+ *
+ * @throws {Error} If no valid hints are found.
  */
 export function parseHints(raw: string): HintSlot[] {
   const slots: HintSlot[] = [];
@@ -149,7 +146,5 @@ export function parseHints(raw: string): HintSlot[] {
     );
   }
 
-  // Array#sort is stable, so slots from the same prefix keep their
-  // expansion order relative to each other.
   return slots.sort((a, b) => a.prefix.localeCompare(b.prefix));
 }

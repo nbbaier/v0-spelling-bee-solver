@@ -4,12 +4,14 @@ import { isSampleId, keys } from "./keys";
 import { redis } from "./redis";
 import type { HintSlot, MatrixData, Puzzle } from "./types";
 
-// Reads a full puzzle (matrix + hints + entered words) for a date.
-// Returns null if no puzzle has been saved for that date.
+/**
+ * Loads matrix, prefix slots, and entered words for `date`.
+ *
+ * Reads the matrix as {@link StoredMatrix} so pre-rename rows (`letters` instead
+ * of `startLetters`) still assemble. Returns `null` if matrix or prefixes are missing.
+ */
 export async function getPuzzle(date: string): Promise<Puzzle | null> {
   const [matrix, prefixes, words] = await Promise.all([
-    // StoredMatrix, not MatrixData: a row saved before the rename has `letters`
-    // and no `startLetters`. assemblePuzzle tolerates either until migrated.
     redis.get<StoredMatrix>(keys.matrix(date)),
     redis.get<HintSlot[]>(keys.prefixes(date)),
     redis.hgetall<Record<string, string>>(keys.words(date)),
@@ -22,9 +24,11 @@ export async function getPuzzle(date: string): Promise<Puzzle | null> {
   return assemblePuzzle(date, matrix, prefixes, words);
 }
 
-// Saves the static puzzle definition (matrix + prefix slots) for a date/id and
-// registers it in the date index set (skipped for the sample sentinel).
-// Does not touch entered words.
+/**
+ * Persists the static puzzle definition (matrix + blank prefix slots).
+ * Registers `date` in the date index unless it is the sample sentinel.
+ * Does not modify entered words.
+ */
 export async function savePuzzle(
   date: string,
   matrix: MatrixData,
@@ -45,7 +49,10 @@ export async function savePuzzle(
   await Promise.all(ops);
 }
 
-// Records or clears a single found word.
+/**
+ * Sets or clears the entered word for one hint slot.
+ * Non-empty values are trimmed and stored uppercase; empty/`null` deletes the hash field.
+ */
 export async function setWord(
   date: string,
   slotId: string,
@@ -58,7 +65,10 @@ export async function setWord(
   }
 }
 
-// Removes a puzzle and its progress for a date/id.
+/**
+ * Deletes a puzzle's matrix, prefixes, and words.
+ * Removes `date` from the date index unless it is the sample sentinel.
+ */
 export async function deletePuzzle(date: string): Promise<void> {
   const ops: Promise<unknown>[] = [
     redis.del(keys.matrix(date)),
@@ -71,12 +81,12 @@ export async function deletePuzzle(date: string): Promise<void> {
   await Promise.all(ops);
 }
 
-// Clears all entered words for a puzzle, resetting the progress.
+/** Deletes all entered words for a puzzle, leaving the definition in place. */
 export async function clearAllWords(date: string): Promise<void> {
   await redis.del(keys.words(date));
 }
 
-// Clears entered words for a specific set of slot IDs.
+/** Deletes entered words for the given slot ids. No-op if `slotIds` is empty. */
 export async function clearWordsForSlots(
   date: string,
   slotIds: string[]
@@ -87,7 +97,7 @@ export async function clearWordsForSlots(
   await redis.hdel(keys.words(date), ...slotIds);
 }
 
-// Lists all saved puzzle dates, most recent first.
+/** Saved puzzle dates, most recent first. Sample is never included. */
 export async function listDates(): Promise<string[]> {
   const dates = await redis.smembers(keys.dates());
   return (dates ?? []).sort().reverse();
