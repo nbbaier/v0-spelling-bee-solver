@@ -125,7 +125,7 @@ export function SolverApp({ date }: SolverAppProps) {
   const renderHeaderDateControl = () => {
     if (isSample) {
       return (
-        <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-primary-foreground/80 text-xs">
+        <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-foreground/80 text-xs">
           Sample data
         </span>
       );
@@ -218,7 +218,7 @@ export function SolverApp({ date }: SolverAppProps) {
             B
           </div>
           <div>
-            <h1 className="font-bold text-foreground text-xl tracking-tight">
+            <h1 className="font-bold font-heading text-foreground text-xl tracking-tight">
               Spelling Bee Solver
             </h1>
             <p className="text-muted-foreground text-sm">
