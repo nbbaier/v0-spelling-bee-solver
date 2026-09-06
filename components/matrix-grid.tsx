@@ -1,9 +1,9 @@
 "use client";
 
+import { cn } from "cn";
 import type { Derived } from "@/lib/derive";
 import { normalizeLetterSet } from "@/lib/letters";
 import type { Puzzle } from "@/lib/types";
-import { cn } from "cn";
 
 function Cell({
   found,

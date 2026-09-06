@@ -1,9 +1,8 @@
 "use client";
 
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import type * as React from "react";
-
 import { cn } from "cn";
+import type * as React from "react";
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
@@ -47,7 +46,7 @@ function PopoverContent({
   );
 }
 
-function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
+function _PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn("flex flex-col gap-0.5 text-sm", className)}
@@ -57,7 +56,7 @@ function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
+function _PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
   return (
     <PopoverPrimitive.Title
       className={cn("font-medium", className)}
@@ -67,7 +66,7 @@ function PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
   );
 }
 
-function PopoverDescription({
+function _PopoverDescription({
   className,
   ...props
 }: PopoverPrimitive.Description.Props) {
@@ -80,11 +79,4 @@ function PopoverDescription({
   );
 }
 
-export {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-};
+export { Popover, PopoverContent, PopoverTrigger };

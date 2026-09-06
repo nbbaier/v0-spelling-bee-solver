@@ -16,11 +16,6 @@ export const keys = {
   words: (id: string) => `sbs:${id}:words`,
 };
 
-// Returns today's date as an ISO YYYY-MM-DD string in local time.
-export function todayISO(): string {
-  return toLocalISO(new Date());
-}
-
 // Converts a Date to a local-time YYYY-MM-DD string (avoids UTC offset issues).
 export function toLocalISO(date: Date): string {
   const y = date.getFullYear();
