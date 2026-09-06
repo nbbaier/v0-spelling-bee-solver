@@ -55,7 +55,7 @@ function MatrixFooter({
 }) {
   if (letterSet.length > 0) {
     return (
-      <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 text-muted-foreground text-xs">
+      <div className="flex flex-wrap items-center gap-1.5 border-border border-t px-3 py-2 text-muted-foreground text-xs">
         <span>Letters:</span>
         <span className="flex flex-wrap items-center gap-1">
           {letterSet.map((letter) => {
@@ -89,7 +89,7 @@ function MatrixFooter({
   }
 
   return (
-    <p className="flex items-center gap-1.5 px-3 py-2 text-muted-foreground text-xs">
+    <p className="flex items-center gap-1.5 border-border border-t px-3 py-2 text-muted-foreground text-xs">
       <span
         aria-hidden="true"
         className="inline-block size-1.5 rounded-full bg-primary"
