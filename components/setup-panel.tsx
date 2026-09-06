@@ -32,7 +32,7 @@ import {
   SAMPLE_PANGRAM_COUNT,
 } from "@/lib/sample";
 import type { HintSlot, MatrixData } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const MATRIX_PLACEHOLDER =
   "\t4\t5\t6\t7\nD\t2\t3\t1\t1\nO\t1\t2\t\t\nN\t\t1\t1\t";

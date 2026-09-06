@@ -3,7 +3,7 @@
 import type { Derived } from "@/lib/derive";
 import { normalizeLetterSet } from "@/lib/letters";
 import type { Puzzle } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 function Cell({
   found,
@@ -31,15 +31,14 @@ function Cell({
   );
 }
 
-// "· 3 pangrams" (singular "1 pangram") after the letter pills; nothing when
-// the count is unknown (null).
+// "· 3 pangrams" (singular "1 pangram") after the letter pills; nothing when nothing count is unknown (null).
 function PangramNote({ pangramCount }: { pangramCount: number | null }) {
   if (pangramCount === null) {
     return null;
   }
   return (
-    <span>
-      · {pangramCount} {pangramCount === 1 ? "pangram" : "pangrams"}
+    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium font-mono text-muted-foreground text-xs transition-colors">
+      {pangramCount} {pangramCount === 1 ? "pangram" : "pangrams"}
     </span>
   );
 }
@@ -55,8 +54,8 @@ function MatrixFooter({
 }) {
   if (letterSet.length > 0) {
     return (
-      <div className="flex flex-wrap items-center gap-1.5 border-border border-t px-3 py-2 text-muted-foreground text-xs">
-        <span>Letters:</span>
+      <div className="flex flex-wrap items-center justify-between gap-1.5 border-border border-t px-3 py-2 text-muted-foreground text-xs">
+        {/* <span>Letters:</span> */}
         <span className="flex flex-wrap items-center gap-1">
           {letterSet.map((letter) => {
             const isCenter = letter === centerLetter;

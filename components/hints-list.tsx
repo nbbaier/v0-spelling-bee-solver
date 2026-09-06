@@ -3,6 +3,7 @@ import Cancel01Icon from "@hugeicons/core-free-icons/Cancel01Icon";
 import Delete02Icon from "@hugeicons/core-free-icons/Delete02Icon";
 import ViewOffIcon from "@hugeicons/core-free-icons/ViewOffIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { cn } from "cn";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -27,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { hasOnlyAllowedLetters } from "@/lib/letters";
 import type { HintSlot } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 function SlotInput({
   slot,
