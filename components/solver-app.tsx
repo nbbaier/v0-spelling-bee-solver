@@ -59,6 +59,11 @@ export function SolverApp({ date }: SolverAppProps) {
 
   const derived = useMemo(() => (puzzle ? derive(puzzle) : null), [puzzle]);
 
+  const letters = useMemo(
+    () => (puzzle ? allowedLetters(puzzle) : []),
+    [puzzle]
+  );
+
   // For each first letter, the word lengths that still have at least one unfound
   // answer. Used by the hint list to show, per prefix group, which lengths the
   // remaining slots could be. Coarse by design (the matrix is letter × length,
@@ -187,7 +192,7 @@ export function SolverApp({ date }: SolverAppProps) {
           </div>
           <div className="space-y-4">
             <HintsList
-              allowedLetters={allowedLetters(puzzle)}
+              allowedLetters={letters}
               availableLengthsByLetter={availableLengthsByLetter}
               centerLetter={puzzle.centerLetter}
               hints={puzzle.hints}
