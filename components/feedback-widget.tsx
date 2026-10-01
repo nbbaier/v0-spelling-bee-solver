@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { submitFeedback } from "@/app/actions/feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { createFeedback } from "@/lib/feedback";
 
 export function FeedbackWidget() {
   const [open, setOpen] = useState(false);
@@ -35,7 +35,10 @@ export function FeedbackWidget() {
       setError(null);
       const formData = new FormData(event.currentTarget);
       try {
-        const result = await submitFeedback(formData);
+        const result = await createFeedback(
+          formData.get("title"),
+          formData.get("description")
+        );
         if (result.ok) {
           setIssueUrl(result.url);
           setTitle("");

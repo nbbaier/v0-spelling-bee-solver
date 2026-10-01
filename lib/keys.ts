@@ -7,6 +7,8 @@
  * - `sbs:dates` — set of real puzzle dates (sample is never added)
  */
 
+import { isRealIsoDate } from "./puzzle-date";
+
 /** Sentinel id for the development dummy puzzle. */
 export const SAMPLE_ID = "sample";
 
@@ -32,15 +34,9 @@ export function parseLocalDate(iso: string): Date {
   return new Date(y, mo - 1, d);
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function isValidDate(date: string): boolean {
-  return DATE_RE.test(date);
-}
-
-/** Whether `id` is {@link SAMPLE_ID} or a `YYYY-MM-DD` string. */
+/** Whether `id` is {@link SAMPLE_ID} or a real calendar date in `YYYY-MM-DD` form. */
 export function isValidPuzzleId(id: string): boolean {
-  return id === SAMPLE_ID || isValidDate(id);
+  return id === SAMPLE_ID || isRealIsoDate(id);
 }
 
 /** Whether `id` is the development dummy sentinel. */

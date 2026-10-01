@@ -25,16 +25,13 @@
  * Dry run:  pnpm migrate:start-letters -- --dry-run
  * Needs KV_REST_API_URL / KV_REST_API_TOKEN (loaded from .env.local).
  */
+import type { StoredMatrix } from "../lib/assemble-puzzle";
 import { keys } from "../lib/keys";
 import { parseMatrix } from "../lib/parse";
 import { puzzleNumberForDate } from "../lib/puzzle-date";
 import { redis } from "../lib/redis";
 import { scrapePuzzle } from "../lib/sbsolver";
 import type { MatrixData } from "../lib/types";
-
-// The raw stored shape can be either the old (`letters`) or new (`startLetters`)
-// form, so read it loosely and narrow on the keys we care about.
-type StoredMatrix = Partial<MatrixData> & { letters?: string[] };
 
 type Outcome =
   | { date: string; status: "migrated" }

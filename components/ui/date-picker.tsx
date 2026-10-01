@@ -8,13 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-function localISO(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+import { toLocalISO } from "@/lib/keys";
 
 interface DatePickerProps {
   disabled?: boolean;
@@ -39,20 +33,20 @@ export function DatePicker({
 
   // Compare as YYYY-MM-DD strings so out-of-range days are disabled without
   // tripping over time-of-day or timezone differences.
-  const minISO = minDate ? localISO(minDate) : null;
-  const maxISO = maxDate ? localISO(maxDate) : null;
+  const minISO = minDate ? toLocalISO(minDate) : null;
+  const maxISO = maxDate ? toLocalISO(maxDate) : null;
 
   // Create a set of date strings for O(1) lookup
   const enabledDateSet = useMemo(() => {
     if (!(enabledDateIndicator && disabledDates)) {
       return new Set<string>();
     }
-    return new Set(disabledDates.map(localISO));
+    return new Set(disabledDates.map(toLocalISO));
   }, [disabledDates, enabledDateIndicator]);
 
   const isDateDisabled = useCallback(
     (date: Date) => {
-      const iso = localISO(date);
+      const iso = toLocalISO(date);
       if (minISO && iso < minISO) {
         return true;
       }
@@ -98,7 +92,7 @@ export function DatePicker({
           modifiers={
             enabledDateIndicator
               ? {
-                  hasData: (date) => enabledDateSet.has(localISO(date)),
+                  hasData: (date) => enabledDateSet.has(toLocalISO(date)),
                 }
               : {}
           }
