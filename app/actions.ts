@@ -9,69 +9,29 @@ import {
   savePuzzle,
   setWord,
 } from "@/lib/puzzle-store";
-import { scrapePuzzle } from "@/lib/sbsolver";
+import { type ScrapeResult, scrapePuzzle } from "@/lib/sbsolver";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
 /** Outcome of fetching a puzzle from sbsolver for the setup form. */
 export type FetchPuzzleResult =
-  | {
-      ok: true;
-      /** Uppercase center letter, or `null` if it could not be read. */
-      centerLetter: string | null;
-      /** Authoritative 7-letter set, or `""` if unknown. */
-      letterSet: string;
-      /** Tab-separated grid paste for the matrix textarea. */
-      matrixText: string;
-      /** `"PREFIX xN"` tallies for the hints textarea. */
-      hintsText: string;
-      /** Puzzle date as `YYYY-MM-DD`, or `null` if it could not be read. */
-      date: string | null;
-      /** Pangram count from the page, or `null` if unreadable. */
-      pangramCount: number | null;
-      /** 2-letter prefixes whose 3-letter page failed to fetch or parse. */
-      failedPrefixes: string[];
-    }
-  | {
-      ok: false;
-      /** User-facing reason the scrape failed. */
-      error: string;
-    };
+  | ({ ok: true } & ScrapeResult)
+  | { ok: false; error: string };
 
-/** Scrapes `url` via {@link scrapePuzzle}, mapping thrown errors to `{ ok: false }`. */
-async function fetchPuzzle(url: string): Promise<FetchPuzzleResult> {
+/**
+ * Scrapes an sbsolver puzzle URL into setup-form text fields via
+ * {@link scrapePuzzle}, mapping thrown errors to `{ ok: false }`.
+ */
+export async function fetchPuzzleFromUrlAction(
+  url: string
+): Promise<FetchPuzzleResult> {
   try {
-    const {
-      matrixText,
-      hintsText,
-      date,
-      centerLetter,
-      letterSet,
-      pangramCount,
-      failedPrefixes,
-    } = await scrapePuzzle(url);
-    return {
-      centerLetter,
-      date,
-      failedPrefixes,
-      hintsText,
-      letterSet,
-      matrixText,
-      ok: true,
-      pangramCount,
-    };
+    return { ok: true, ...(await scrapePuzzle(url)) };
   } catch (e) {
     return {
       error: e instanceof Error ? e.message : "Could not fetch that puzzle.",
       ok: false,
     };
   }
-}
-
-/** Scrapes an sbsolver puzzle URL into setup-form text fields. */
-export async function fetchPuzzleFromUrlAction(
-  url: string
-): Promise<FetchPuzzleResult> {
-  return await fetchPuzzle(url);
 }
 
 /**
@@ -87,7 +47,7 @@ export async function fetchPuzzleByDateAction(
     return { error: "No puzzle is available for that date.", ok: false };
   }
   const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(dateIso)}`;
-  const result = await fetchPuzzle(url);
+  const result = await fetchPuzzleFromUrlAction(url);
   if (result.ok && result.date !== dateIso) {
     return {
       error: result.date

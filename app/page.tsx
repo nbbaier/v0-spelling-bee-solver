@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { isSampleId, isValidPuzzleId } from "@/lib/keys";
-import { isRealIsoDate, latestPuzzleDateISO } from "@/lib/puzzle-date";
+import { latestPuzzleDateISO } from "@/lib/puzzle-date";
 
 interface PageProps {
   searchParams: Promise<{ date?: string | string[] }>;
@@ -11,11 +11,7 @@ export default async function Page({ searchParams }: PageProps) {
   if (typeof date === "string" && isSampleId(date)) {
     redirect("/sample");
   }
-  if (
-    typeof date === "string" &&
-    isValidPuzzleId(date) &&
-    isRealIsoDate(date)
-  ) {
+  if (typeof date === "string" && isValidPuzzleId(date)) {
     redirect(`/${date}`);
   }
   redirect(`/${latestPuzzleDateISO()}`);
