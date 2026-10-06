@@ -1,126 +1,40 @@
 # Coding Standards
 
-Read during review. Biome (via Ultracite) enforces most of these mechanically; `pnpm check` runs it in CI.
+Read during review. `pnpm check` (ultracite, `tsc --noEmit`, vitest) runs in CI and already enforces Ultracite's Biome rules from the core, react and next presets, so this file lists only what lint can't settle. `pnpm fix` auto-fixes most lint findings.
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
+## Types
 
-## Quick Reference
+- Annotate parameters and return types where the inferred type isn't obvious from the code.
+- Narrow with type guards and control flow; reach for `as` only when the compiler can't follow, and say why.
+- Name magic numbers as constants (`POOL_SIZE`, not a bare `5`).
 
-- **Full project check** (lint, typecheck, tests; what CI runs): `pnpm check`
-- **Format code**: `pnpm dlx ultracite fix`
-- **Check for issues**: `pnpm dlx ultracite check`
-- **Diagnose setup**: `pnpm dlx ultracite doctor`
+## Control flow and errors
 
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
+- Return early for error and edge cases instead of nesting the happy path.
+- Pull complex conditions into well-named booleans.
+- Keep functions focused, group related code, and separate concerns.
+- Use `async`/`await` rather than `.then` chains.
+- Catch an error only where you can handle it: recover, add context, or surface it to the user. Otherwise let it propagate.
+- Remove `console.log` debugging before merging (Biome's `noConsole` is off).
 
----
+## UI
 
-## Core Principles
+- Keep heading levels in order and use semantic elements and ARIA where lint can't see intent.
+- Validate and sanitize user input at the boundary (server actions, API routes, scraped HTML).
 
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
+## Tests
 
-### Type Safety & Explicitness
+These aren't linted: the repo doesn't extend Ultracite's vitest preset.
 
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
+- Put assertions inside `it()`/`test()` blocks.
+- Use `async`/`await`, not `done` callbacks.
+- Don't commit `.only` or `.skip`.
+- Keep suites flat; avoid deep `describe` nesting.
 
-### Modern JavaScript/TypeScript
+## What only a reviewer can check
 
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
-
-### Async & Promises
-
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
-
-### React & JSX
-
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
-
-### Error Handling & Debugging
-
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
-
-### Code Organization
-
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
-
-### Security
-
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
-
-### Performance
-
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**Next.js:**
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
-**React 19+:**
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
-
----
-
-## Testing
-
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
-
-## When Biome Can't Help
-
-Biome's linter will catch most issues automatically. Focus your attention on:
-
-1. **Business logic correctness** - Biome can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
-
----
-
-Most formatting and common issues are automatically fixed by Biome. Run `pnpm dlx ultracite fix` before committing to ensure compliance.
+- **Correctness:** does the logic match the issue or spec, including edge cases and failure states?
+- **Naming:** do names use the vocabulary in `GLOSSARY.md`?
+- **Architecture:** does the change respect the data flow in `AGENTS.md` and the decisions in `docs/adr/`?
+- **User experience:** loading, error and empty states; keyboard and screen-reader use.
+- **Comments:** explain why, not what; prefer self-explanatory code.
