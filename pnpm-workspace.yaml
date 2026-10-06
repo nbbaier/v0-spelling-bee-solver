@@ -1,5 +1,6 @@
 packages:
   - .
-neverBuiltDependencies:
-  - msw
-  - sharp
+allowBuilds:
+  esbuild: false
+  msw: false
+  sharp: false
