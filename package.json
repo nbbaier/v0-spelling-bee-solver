@@ -6,14 +6,15 @@
   "workspaces": ["."],
   "scripts": {
     "build": "next build",
-    "check": "ultracite check",
+    "check": "ultracite check && tsc --noEmit && vitest run",
     "dev": "next dev",
     "fix": "ultracite fix",
     "lint": "ultracite check",
     "migrate:start-letters": "node --env-file=.env.local --conditions=react-server --import tsx scripts/migrate-letters-to-start-letters.ts",
     "start": "next start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "overrides": {
     "hono": "4.12.25"
