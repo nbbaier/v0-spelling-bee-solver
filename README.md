@@ -15,7 +15,7 @@ An interactive solver for the [New York Times Spelling Bee](https://www.nytimes.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.12+, 24, or 26+ (the strictest range in the toolchain, set by vitest)
 - pnpm 10+ (or npm/yarn)
 
 ### Installation

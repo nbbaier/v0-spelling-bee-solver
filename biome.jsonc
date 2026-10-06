@@ -5,6 +5,10 @@
     "ultracite/biome/react",
     "ultracite/biome/next"
   ],
+  "files": {
+    // Recorded third-party HTML; keep it byte-for-byte as sbsolver serves it.
+    "includes": ["!!test/fixtures"]
+  },
   "overrides": [
     {
       "includes": ["package.json"],

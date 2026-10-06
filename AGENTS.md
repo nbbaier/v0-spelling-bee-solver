@@ -23,6 +23,7 @@ Routes: `app/page.tsx` redirects to a date, `app/[date]/page.tsx` renders it, an
 
 - `GLOSSARY.md`: domain terms (letter set, matrix, prefix grain, room). Use its vocabulary.
 - `docs/adr/`: design decisions. Read the ones that touch your area before changing it.
+- `docs/sbsolver-markup.md`: sbsolver URL shapes and the selectors the scraper reads. Read before touching `lib/sbsolver.ts`; recorded pages are in `test/fixtures/sbsolver/`.
 - `scripts/README.md`: one-off Redis migrations.
 - `CODING_STANDARDS.md`: style rules for review.
 

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { parse } from "node-html-parser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseMatrix } from "./parse";
@@ -63,6 +64,15 @@ function puzzleHtml({
         </table>
       </body>
     </html>`;
+}
+
+// Trimmed real pages from sbsolver.com. See docs/sbsolver-markup.md for what
+// each selector means; refresh these when the site's markup changes.
+function fixture(name: string): string {
+  return readFileSync(
+    new URL(`../test/fixtures/sbsolver/${name}`, import.meta.url),
+    "utf8"
+  );
 }
 
 function prefixHtml(): string {
@@ -171,4 +181,48 @@ describe("scrapePuzzle", () => {
       expect(result.hintsText).toBe("BAT x1");
     }
   );
+});
+
+describe("scrapePuzzle against recorded sbsolver pages", () => {
+  it("reads every field from the real /nt/2976 markup", async () => {
+    const mainPage = fixture("nt-2976.html");
+    const cePage = fixture("nt-2976-ce.html");
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url === "https://www.sbsolver.com/nt/2976") {
+        return Promise.resolve(new Response(mainPage));
+      }
+      if (url === "https://www.sbsolver.com/nt/Ecdhipu/2976/ce") {
+        return Promise.resolve(new Response(cePage));
+      }
+      return Promise.resolve(new Response("", { status: 404 }));
+    });
+
+    const result = await scrapePuzzle("https://www.sbsolver.com/s/2976");
+    const matrix = parseMatrix(result.matrixText);
+
+    expect(result.date).toBe("2026-07-01");
+    expect(result.letterSet).toBe("ECDHIPU");
+    expect(result.centerLetter).toBe("E");
+    expect(result.pangramCount).toBe(2);
+    expect(matrix.startLetters).toEqual(["C", "D", "E", "H", "I", "P", "U"]);
+    expect(result.hintsText).toBe("CED x 2");
+    expect(result.failedPrefixes).toEqual([
+      "CH",
+      "CU",
+      "DE",
+      "DI",
+      "DU",
+      "ED",
+      "EP",
+      "HE",
+      "HI",
+      "HU",
+      "IC",
+      "PE",
+      "PI",
+      "PU",
+      "UP",
+    ]);
+  });
 });
