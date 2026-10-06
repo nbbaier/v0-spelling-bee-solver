@@ -1,4 +1,4 @@
-# Context
+# Glossary
 
 A glossary of the domain language for this project. Terms only — no implementation detail.
 

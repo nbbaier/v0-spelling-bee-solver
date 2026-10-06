@@ -17,14 +17,7 @@ Single-context repo (this repo):
 ```
 /
 ├── GLOSSARY.md
-├── docs/adr/
-│   ├── 0001-crawl-3-letter-tallies-from-sbsolver.md
-│   ├── 0002-load-puzzles-by-date.md
-│   ├── 0003-separate-date-index-cache.md
-│   ├── 0004-puzzle-url-at-root.md
-│   ├── 0005-route-inventory-and-room-resolution.md
-│   ├── 0006-first-fetch-uses-setup-panel.md
-│   └── 0007-realtime-sync-via-upstash-realtime.md
+├── docs/adr/    (one NNNN-slug.md per decision)
 └── ...
 ```
 

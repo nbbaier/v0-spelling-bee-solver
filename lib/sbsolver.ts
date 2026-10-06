@@ -10,6 +10,7 @@ import { parse } from "node-html-parser";
 // tally we need lives on a separate page per 2-letter prefix. We therefore
 // crawl: parse the main page, then fetch each prefix's page with a small
 // concurrency pool. See docs/adr/0001-crawl-3-letter-tallies-from-sbsolver.md.
+// Selectors and URL shapes are documented in docs/sbsolver-markup.md.
 
 const ALLOWED_HOST = "www.sbsolver.com";
 const POOL_SIZE = 5;

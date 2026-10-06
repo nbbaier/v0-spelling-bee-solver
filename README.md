@@ -15,7 +15,7 @@ An interactive solver for the [New York Times Spelling Bee](https://www.nytimes.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.9+
 - pnpm 10+ (or npm/yarn)
 
 ### Installation
