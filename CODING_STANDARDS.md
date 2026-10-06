@@ -1,6 +1,6 @@
 # Coding Standards
 
-Read during review. `pnpm check` (ultracite, `tsc --noEmit`, vitest) runs in CI and already enforces Ultracite's Biome rules from the core, react and next presets, so this file lists only what lint can't settle. `pnpm fix` auto-fixes most lint findings.
+Read during review. `pnpm check` (ultracite, `tsc --noEmit`, vitest) runs in CI and already enforces Ultracite's Biome rules from the core, react, next and vitest presets, so this file lists only what lint can't settle. `pnpm fix` auto-fixes most lint findings.
 
 ## Types
 
@@ -21,15 +21,6 @@ Read during review. `pnpm check` (ultracite, `tsc --noEmit`, vitest) runs in CI 
 
 - Keep heading levels in order and use semantic elements and ARIA where lint can't see intent.
 - Validate and sanitize user input at the boundary (server actions, API routes, scraped HTML).
-
-## Tests
-
-These aren't linted: the repo doesn't extend Ultracite's vitest preset.
-
-- Put assertions inside `it()`/`test()` blocks.
-- Use `async`/`await`, not `done` callbacks.
-- Don't commit `.only` or `.skip`.
-- Keep suites flat; avoid deep `describe` nesting.
 
 ## What only a reviewer can check
 
