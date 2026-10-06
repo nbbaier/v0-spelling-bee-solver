@@ -9,7 +9,7 @@ const LETTER_RE = /[A-Za-z]/;
  * Unioning start letters keeps validation from becoming stricter than
  * start-letters-only when the stored set is empty, incomplete, or malformed.
  * A complete set already contains every start letter, so the union is a no-op.
- * See CONTEXT.md → Letter set.
+ * See GLOSSARY.md → Letter set.
  */
 export function allowedLetters(
   puzzle: Pick<Puzzle, "letterSet" | "startLetters">

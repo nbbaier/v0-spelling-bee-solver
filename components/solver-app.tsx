@@ -67,7 +67,7 @@ export function SolverApp({ date }: SolverAppProps) {
   // For each first letter, the word lengths that still have at least one unfound
   // answer. Used by the hint list to show, per prefix group, which lengths the
   // remaining slots could be. Coarse by design (the matrix is letter × length,
-  // not prefix × length) — see CONTEXT.md → Matrix.
+  // not prefix × length) — see GLOSSARY.md → Matrix.
   const availableLengthsByLetter = useMemo(() => {
     if (!(puzzle && derived)) {
       return {} as Record<string, number[]>;

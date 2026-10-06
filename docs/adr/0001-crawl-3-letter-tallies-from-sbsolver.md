@@ -1,6 +1,6 @@
 # Crawl per-prefix pages for 3-letter tallies instead of adopting sbsolver's 2-letter grain
 
-This app groups hints by **3-letter prefix** (see [CONTEXT.md](../../CONTEXT.md) → Prefix grain), but a sbsolver puzzle page only lists hints at **2-letter** grain; the 3-letter tally lives on a separate page per 2-letter prefix. To populate the hint list from a sbsolver URL we therefore **crawl**: fetch the main page, then fetch every 2-letter prefix's page (bounded concurrency pool of ~5) and scrape its 3-letter cells. We chose this over the simpler alternative of switching the whole app to 2-letter grain, because the finer grain is core to the solver UX and we did not want a scraping convenience to dictate the product's data model.
+This app groups hints by **3-letter prefix** (see [GLOSSARY.md](../../GLOSSARY.md) → Prefix grain), but a sbsolver puzzle page only lists hints at **2-letter** grain; the 3-letter tally lives on a separate page per 2-letter prefix. To populate the hint list from a sbsolver URL we therefore **crawl**: fetch the main page, then fetch every 2-letter prefix's page (bounded concurrency pool of ~5) and scrape its 3-letter cells. We chose this over the simpler alternative of switching the whole app to 2-letter grain, because the finer grain is core to the solver UX and we did not want a scraping convenience to dictate the product's data model.
 
 ## Consequences
 

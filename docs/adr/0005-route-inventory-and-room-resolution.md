@@ -1,6 +1,6 @@
 # Route inventory: date routes resolve to the current room; rooms live under `/r/`
 
-Four interacting decisions shape the route table: a puzzle's identity is its date (ADR 0004), a Room is a persistent collaborative group spanning dates (`CONTEXT.md` → Room), a browser holds many rooms with a "current room" pointer, and dates absent from the global `sbs:dates` index land in the setup panel (decision B). The routes fall out of composing those.
+Four interacting decisions shape the route table: a puzzle's identity is its date (ADR 0004), a Room is a persistent collaborative group spanning dates (`GLOSSARY.md` → Room), a browser holds many rooms with a "current room" pointer, and dates absent from the global `sbs:dates` index land in the setup panel (decision B). The routes fall out of composing those.
 
 ## Route table
 

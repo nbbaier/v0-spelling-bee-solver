@@ -36,14 +36,14 @@ export interface ScrapeResult {
   hintsText: string;
   /**
    * Authoritative 7-letter set (uppercase, deduped), or `""` if `#string`
-   * could not be read. See CONTEXT.md → Letter set.
+   * could not be read. See GLOSSARY.md → Letter set.
    */
   letterSet: string;
   /** Tab-separated grid including totals; `parseMatrix` ignores non-data cells. */
   matrixText: string;
   /**
    * Pangram count from the stats block, or `null` if unreadable.
-   * See CONTEXT.md → Pangram.
+   * See GLOSSARY.md → Pangram.
    */
   pangramCount: number | null;
 }

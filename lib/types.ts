@@ -25,20 +25,20 @@ export interface MatrixData {
   /**
    * Authoritative 7-letter set, uppercase with no separators (e.g. `"RDGINOW"`).
    * Empty when unknown (hand-pasted puzzle, or a row persisted before this field).
-   * See CONTEXT.md → Letter set.
+   * See GLOSSARY.md → Letter set.
    */
   letterSet: string;
 
   /**
    * Number of pangrams (answers using all seven letters), or `null` when unknown.
-   * See CONTEXT.md → Pangram.
+   * See GLOSSARY.md → Pangram.
    */
   pangramCount: number | null;
 
   /**
    * Uppercase row labels: start letters of answers. Not the full 7-letter set —
    * a puzzle letter that begins no answer never appears here.
-   * See CONTEXT.md → Matrix.
+   * See GLOSSARY.md → Matrix.
    */
   startLetters: string[];
 }
