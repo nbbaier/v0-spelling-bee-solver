@@ -3,7 +3,8 @@
   "extends": [
     "ultracite/biome/core",
     "ultracite/biome/react",
-    "ultracite/biome/next"
+    "ultracite/biome/next",
+    "ultracite/biome/vitest"
   ],
   "files": {
     // Recorded third-party HTML; keep it byte-for-byte as sbsolver serves it.
