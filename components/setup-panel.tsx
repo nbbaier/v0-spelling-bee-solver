@@ -239,6 +239,10 @@ export function SetupPanel({
   // this panel and discards the fields; it's committed to the parent at Load.
   const [fetchedDate, setFetchedDate] = useState<string | null>(null);
   const [failedPrefixes, setFailedPrefixes] = useState<string[]>([]);
+  // The hand-entry fields stay hidden until a lookup finishes: a success fills
+  // them for review, a failure leaves them empty to paste into. The user can
+  // also open them directly.
+  const [showFields, setShowFields] = useState(false);
 
   // Live-parse the matrix so the center-letter pills reflect the letters the
   // user has actually entered. A failed parse (e.g. mid-typing) just yields an
@@ -334,9 +338,11 @@ export function SetupPanel({
         } else {
           setFetchError(result.error);
         }
+        setShowFields(true);
       } catch {
         if (token === requestToken.current) {
           setFetchError(reachError);
+          setShowFields(true);
         }
       } finally {
         if (token === requestToken.current) {
@@ -450,6 +456,10 @@ export function SetupPanel({
     onLoad,
     pangramCount,
   ]);
+
+  const handleShowFields = useCallback(() => {
+    setShowFields(true);
+  }, []);
 
   const handleDateMode = useCallback(() => {
     setMode("date");
@@ -595,7 +605,7 @@ export function SetupPanel({
 
               <details className="rounded-lg border border-border bg-muted/30 px-4 py-3">
                 <summary className="cursor-pointer font-medium text-muted-foreground text-sm">
-                  Paste a sbsolver URL instead
+                  Paste a sbsolver URL instead (currently blocked)
                 </summary>
                 <div className="mt-3 space-y-2">
                   <Label htmlFor="puzzle-url">sbsolver URL</Label>
@@ -619,55 +629,68 @@ export function SetupPanel({
                       {fetching ? "Fetching…" : "Fetch"}
                     </Button>
                   </div>
-                  <p className="text-muted-foreground text-xs">
-                    Useful for a specific link. The grid and hints fill in
-                    below; you can still edit them before loading.
+                  <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
+                    sbsolver currently blocks automated requests, so this fetch
+                    will likely fail. Paste the grid and hints by hand instead.
                   </p>
                 </div>
               </details>
 
-              <div className="space-y-2">
-                <Label htmlFor="matrix">Grid matrix (tab-separated)</Label>
-                <Textarea
-                  className="font-mono text-base md:text-sm"
-                  id="matrix"
-                  onChange={handleMatrixChange}
-                  placeholder={MATRIX_PLACEHOLDER}
-                  rows={6}
-                  value={matrixText}
-                />
-                <p className="text-muted-foreground text-xs">
-                  Letters down the left, word lengths across the top. Totals
-                  rows/columns are ignored.
-                </p>
-              </div>
+              {showFields ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="matrix">Grid matrix (tab-separated)</Label>
+                    <Textarea
+                      className="font-mono text-base md:text-sm"
+                      id="matrix"
+                      onChange={handleMatrixChange}
+                      placeholder={MATRIX_PLACEHOLDER}
+                      rows={6}
+                      value={matrixText}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Letters down the left, word lengths across the top. Totals
+                      rows/columns are ignored.
+                    </p>
+                  </div>
 
-              <LetterSetInput
-                complete={letterSetComplete}
-                onChange={setLetterSet}
-                value={letterSet}
-              />
+                  <LetterSetInput
+                    complete={letterSetComplete}
+                    onChange={setLetterSet}
+                    value={letterSet}
+                  />
 
-              <CenterLetterPicker
-                letters={centerLetterOptions}
-                onChange={setCenterLetter}
-                value={centerLetter}
-              />
+                  <CenterLetterPicker
+                    letters={centerLetterOptions}
+                    onChange={setCenterLetter}
+                    value={centerLetter}
+                  />
 
-              <div className="space-y-2">
-                <Label htmlFor="hints">Hint list</Label>
-                <Textarea
-                  className="font-mono text-base md:text-sm"
-                  id="hints"
-                  onChange={handleHintsChange}
-                  placeholder={HINTS_PLACEHOLDER}
-                  rows={4}
-                  value={hintsText}
-                />
-                <p className="text-muted-foreground text-xs">
-                  {'Format: "PREFIX xN", e.g. DRO x4.'}
-                </p>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hints">Hint list</Label>
+                    <Textarea
+                      className="font-mono text-base md:text-sm"
+                      id="hints"
+                      onChange={handleHintsChange}
+                      placeholder={HINTS_PLACEHOLDER}
+                      rows={4}
+                      value={hintsText}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      {'Format: "PREFIX xN", e.g. DRO x4.'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <button
+                  className="text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground"
+                  disabled={fetching}
+                  onClick={handleShowFields}
+                  type="button"
+                >
+                  Enter the puzzle by hand
+                </button>
+              )}
             </>
           ) : (
             <div className="space-y-1 rounded-lg border border-border bg-muted/30 px-4 py-4 text-muted-foreground text-sm leading-relaxed">
