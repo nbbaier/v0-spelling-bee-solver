@@ -114,14 +114,14 @@ function CenterLetterPicker({
         })}
       </div>
       <p className="text-muted-foreground text-xs">
-        The required letter for every answer. Fetched from sbsolver
+        The required letter for every answer. Fetched from the NYT
         automatically; pick it manually if you pasted the grid by hand.
       </p>
     </div>
   );
 }
 
-// The puzzle's full 7-letter set. sbsolver supplies all seven; a hand-pasted
+// The puzzle's full 7-letter set. A fetch supplies all seven; a hand-pasted
 // grid only reveals the letters that begin an answer, so the user must confirm
 // the rest (letters used only mid-word are otherwise lost — the #19 regression).
 function LetterSetInput({
@@ -151,7 +151,7 @@ function LetterSetInput({
       />
       {complete ? (
         <p className="text-muted-foreground text-xs">
-          All seven puzzle letters. Fetched from sbsolver automatically.
+          All seven puzzle letters. Fetched automatically.
         </p>
       ) : (
         <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
@@ -239,6 +239,10 @@ export function SetupPanel({
   // this panel and discards the fields; it's committed to the parent at Load.
   const [fetchedDate, setFetchedDate] = useState<string | null>(null);
   const [failedPrefixes, setFailedPrefixes] = useState<string[]>([]);
+  // The hand-entry fields stay hidden until a lookup finishes: a success fills
+  // them for review, a failure leaves them empty to paste into. The user can
+  // also open them directly.
+  const [showFields, setShowFields] = useState(false);
 
   // Live-parse the matrix so the center-letter pills reflect the letters the
   // user has actually entered. A failed parse (e.g. mid-typing) just yields an
@@ -310,6 +314,19 @@ export function SetupPanel({
     []
   );
 
+  // Clears a previous result after a failed lookup, so the empty fields are
+  // pasted into and saved under `failedTarget` (the picked date, or null to
+  // fall back to the page date) rather than the earlier fetch's date.
+  const resetResult = useCallback((failedTarget: string | null) => {
+    setMatrixText("");
+    setHintsText("");
+    setFetchedDate(failedTarget);
+    setFailedPrefixes([]);
+    setCenterLetter(null);
+    setLetterSet("");
+    setPangramCount(null);
+  }, []);
+
   // Runs a scrape and applies it only if no newer request has started. Keeps the
   // resolved date local (via applyResult → fetchedDate) rather than touching the
   // parent SWR key, so this panel isn't remounted mid-fetch.
@@ -317,6 +334,7 @@ export function SetupPanel({
     async (
       fetcher: () => Promise<FetchPuzzleResult>,
       targetDate: (result: FetchPuzzleResult & { ok: true }) => string | null,
+      failedTarget: string | null,
       reachError: string
     ) => {
       requestToken.current += 1;
@@ -332,11 +350,15 @@ export function SetupPanel({
         if (result.ok) {
           applyResult(result, targetDate(result));
         } else {
+          resetResult(failedTarget);
           setFetchError(result.error);
         }
+        setShowFields(true);
       } catch {
         if (token === requestToken.current) {
+          resetResult(failedTarget);
           setFetchError(reachError);
+          setShowFields(true);
         }
       } finally {
         if (token === requestToken.current) {
@@ -344,13 +366,12 @@ export function SetupPanel({
         }
       }
     },
-    [applyResult]
+    [applyResult, resetResult]
   );
 
   // Picking a date is the primary way to load a puzzle. If that date already has
-  // a saved puzzle, switch to it directly; otherwise resolve it to the sbsolver
-  // puzzle number server-side and scrape it, with the picked date as the save
-  // target.
+  // a saved puzzle, switch to it directly; otherwise load it from the NYT
+  // server-side, with the picked date as the save target.
   const handleDateSelect = useCallback(
     (next: string) => {
       if (dates.includes(next)) {
@@ -360,7 +381,8 @@ export function SetupPanel({
       runFetch(
         () => fetchPuzzleByDateAction(next),
         () => next,
-        "Couldn't reach sbsolver. Try again."
+        next,
+        "Couldn't reach the NYT. Try again."
       );
     },
     [dates, onSelectExisting, runFetch]
@@ -370,6 +392,7 @@ export function SetupPanel({
     runFetch(
       () => fetchPuzzleFromUrlAction(url),
       (result) => result.date,
+      null,
       "Couldn't reach the puzzle. Check the URL and try again."
     );
   }, [runFetch, url]);
@@ -452,6 +475,10 @@ export function SetupPanel({
     pangramCount,
   ]);
 
+  const handleShowFields = useCallback(() => {
+    setShowFields(true);
+  }, []);
+
   const handleDateMode = useCallback(() => {
     setMode("date");
     setError(null);
@@ -518,7 +545,7 @@ export function SetupPanel({
             Load a puzzle
           </h2>
           <p className="max-w-md text-muted-foreground text-sm leading-relaxed">
-            Pick a date to load that day&apos;s puzzle from sbsolver, or load
+            Pick a date to load that day&apos;s puzzle from the NYT, or load
             sample data for development.
           </p>
         </div>
@@ -581,9 +608,10 @@ export function SetupPanel({
                   ) : null}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Defaults to today. Pick any date back to May 9, 2018 to load
-                  that day&apos;s puzzle automatically. Highlighted dates are
-                  already saved and open instantly.
+                  Defaults to today. Puzzles from the last two weeks load
+                  automatically from the NYT; for older dates, paste the grid
+                  and hints below. Highlighted dates are already saved and open
+                  instantly.
                 </p>
                 <FetchStatusMessages
                   date={date}
@@ -595,7 +623,7 @@ export function SetupPanel({
 
               <details className="rounded-lg border border-border bg-muted/30 px-4 py-3">
                 <summary className="cursor-pointer font-medium text-muted-foreground text-sm">
-                  Paste a sbsolver URL instead
+                  Paste a sbsolver URL instead (currently blocked)
                 </summary>
                 <div className="mt-3 space-y-2">
                   <Label htmlFor="puzzle-url">sbsolver URL</Label>
@@ -619,55 +647,68 @@ export function SetupPanel({
                       {fetching ? "Fetching…" : "Fetch"}
                     </Button>
                   </div>
-                  <p className="text-muted-foreground text-xs">
-                    Useful for a specific link. The grid and hints fill in
-                    below; you can still edit them before loading.
+                  <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
+                    sbsolver currently blocks automated requests, so this fetch
+                    will likely fail. Paste the grid and hints by hand instead.
                   </p>
                 </div>
               </details>
 
-              <div className="space-y-2">
-                <Label htmlFor="matrix">Grid matrix (tab-separated)</Label>
-                <Textarea
-                  className="font-mono text-base md:text-sm"
-                  id="matrix"
-                  onChange={handleMatrixChange}
-                  placeholder={MATRIX_PLACEHOLDER}
-                  rows={6}
-                  value={matrixText}
-                />
-                <p className="text-muted-foreground text-xs">
-                  Letters down the left, word lengths across the top. Totals
-                  rows/columns are ignored.
-                </p>
-              </div>
+              {showFields ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="matrix">Grid matrix (tab-separated)</Label>
+                    <Textarea
+                      className="font-mono text-base md:text-sm"
+                      id="matrix"
+                      onChange={handleMatrixChange}
+                      placeholder={MATRIX_PLACEHOLDER}
+                      rows={6}
+                      value={matrixText}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Letters down the left, word lengths across the top. Totals
+                      rows/columns are ignored.
+                    </p>
+                  </div>
 
-              <LetterSetInput
-                complete={letterSetComplete}
-                onChange={setLetterSet}
-                value={letterSet}
-              />
+                  <LetterSetInput
+                    complete={letterSetComplete}
+                    onChange={setLetterSet}
+                    value={letterSet}
+                  />
 
-              <CenterLetterPicker
-                letters={centerLetterOptions}
-                onChange={setCenterLetter}
-                value={centerLetter}
-              />
+                  <CenterLetterPicker
+                    letters={centerLetterOptions}
+                    onChange={setCenterLetter}
+                    value={centerLetter}
+                  />
 
-              <div className="space-y-2">
-                <Label htmlFor="hints">Hint list</Label>
-                <Textarea
-                  className="font-mono text-base md:text-sm"
-                  id="hints"
-                  onChange={handleHintsChange}
-                  placeholder={HINTS_PLACEHOLDER}
-                  rows={4}
-                  value={hintsText}
-                />
-                <p className="text-muted-foreground text-xs">
-                  {'Format: "PREFIX xN", e.g. DRO x4.'}
-                </p>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hints">Hint list</Label>
+                    <Textarea
+                      className="font-mono text-base md:text-sm"
+                      id="hints"
+                      onChange={handleHintsChange}
+                      placeholder={HINTS_PLACEHOLDER}
+                      rows={4}
+                      value={hintsText}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      {'Format: "PREFIX xN", e.g. DRO x4.'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <button
+                  className="text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground"
+                  disabled={fetching}
+                  onClick={handleShowFields}
+                  type="button"
+                >
+                  Enter the puzzle by hand
+                </button>
+              )}
             </>
           ) : (
             <div className="space-y-1 rounded-lg border border-border bg-muted/30 px-4 py-4 text-muted-foreground text-sm leading-relaxed">

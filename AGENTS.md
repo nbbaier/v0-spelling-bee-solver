@@ -1,12 +1,13 @@
 # Agent guide
 
-Next.js app that helps solve the NYT Spelling Bee. Puzzles are scraped from sbsolver.com, stored in Upstash Redis keyed by date, and solved in the browser.
+Next.js app that helps solve the NYT Spelling Bee. Puzzles are loaded from the NYT's Spelling Bee page (or pasted by hand), stored in Upstash Redis keyed by date, and solved in the browser.
 
 ## Code map
 
 Data flows top to bottom:
 
-- `lib/sbsolver.ts`: scrapes a puzzle page plus its 3-letter tally pages (`scrapePuzzle`). Parsing helpers are tested in `lib/sbsolver.test.ts`.
+- `lib/nyt.ts`: loads a dated puzzle from the NYT's page and derives the grid and 3-letter tallies from its answers (`fetchNytPuzzle`). Only the last ~two weeks exist; older dates are hand-pasted. See `docs/adr/0008-load-puzzles-from-nyt.md`.
+- `lib/sbsolver.ts`: scrapes a sbsolver puzzle page (URL-paste path; sbsolver currently blocks bots) plus its 3-letter tally pages (`scrapePuzzle`). Parsing helpers are tested in `lib/sbsolver.test.ts`.
 - `lib/parse.ts`: parses a hand-pasted matrix and hint list (the setup panel's paste path).
 - `lib/puzzle-store.ts`: Redis reads and writes. Key shapes live in `lib/keys.ts`; stored rows become a `Puzzle` via `lib/assemble-puzzle.ts`.
 - `app/actions.ts`: server actions for fetching, saving and editing puzzles. `app/api/puzzle/route.ts` and `app/api/puzzle/dates/route.ts` are the read endpoints.

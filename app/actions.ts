@@ -1,7 +1,8 @@
 "use server";
 
 import { isValidPuzzleId } from "@/lib/keys";
-import { isPuzzleDateInRange, puzzleNumberForDate } from "@/lib/puzzle-date";
+import { fetchNytPuzzle, NytNotFoundError } from "@/lib/nyt";
+import { isPuzzleDateInRange, latestPuzzleDateISO } from "@/lib/puzzle-date";
 import {
   clearAllWords,
   clearWordsForSlots,
@@ -12,7 +13,7 @@ import {
 import { type ScrapeResult, scrapePuzzle } from "@/lib/sbsolver";
 import type { HintSlot, MatrixData } from "@/lib/types";
 
-/** Outcome of fetching a puzzle from sbsolver for the setup form. */
+/** Outcome of fetching a puzzle (NYT or sbsolver) for the setup form. */
 export type FetchPuzzleResult =
   | ({ ok: true } & ScrapeResult)
   | { ok: false; error: string };
@@ -35,10 +36,9 @@ export async function fetchPuzzleFromUrlAction(
 }
 
 /**
- * Scrapes the sbsolver puzzle for `dateIso` via `/nt/<number>`.
- *
- * Rejects a scrape whose page date does not match `dateIso` (including a missing
- * date), so a numbering gap cannot store one day's puzzle under another date.
+ * Loads the puzzle for `dateIso` from the NYT's own page (see
+ * docs/adr/0008-load-puzzles-from-nyt.md). The NYT only serves roughly the last
+ * two weeks; an older date fails with a message pointing at the paste fields.
  */
 export async function fetchPuzzleByDateAction(
   dateIso: string
@@ -46,17 +46,23 @@ export async function fetchPuzzleByDateAction(
   if (!isPuzzleDateInRange(dateIso)) {
     return { error: "No puzzle is available for that date.", ok: false };
   }
-  const url = `https://www.sbsolver.com/nt/${puzzleNumberForDate(dateIso)}`;
-  const result = await fetchPuzzleFromUrlAction(url);
-  if (result.ok && result.date !== dateIso) {
+  try {
+    return { ok: true, ...(await fetchNytPuzzle(dateIso)) };
+  } catch (e) {
+    if (e instanceof NytNotFoundError) {
+      return {
+        error:
+          dateIso === latestPuzzleDateISO()
+            ? "Today's puzzle isn't on the NYT site yet (it goes live around 3 a.m. ET). Try again later, or paste the grid and hints below."
+            : "The NYT only keeps the last two weeks of puzzles. Paste the grid and hints below to load this one.",
+        ok: false,
+      };
+    }
     return {
-      error: result.date
-        ? `That date resolved to the puzzle for ${result.date}. sbsolver's numbering may have shifted — try the URL option.`
-        : "Couldn't confirm the puzzle's date on that page — try the URL option.",
+      error: e instanceof Error ? e.message : "Could not fetch that puzzle.",
       ok: false,
     };
   }
-  return result;
 }
 
 /** Persists a puzzle definition. Throws if `date` is not a valid puzzle id. */
