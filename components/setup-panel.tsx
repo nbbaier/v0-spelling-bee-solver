@@ -114,14 +114,14 @@ function CenterLetterPicker({
         })}
       </div>
       <p className="text-muted-foreground text-xs">
-        The required letter for every answer. Fetched from sbsolver
+        The required letter for every answer. Fetched from the NYT
         automatically; pick it manually if you pasted the grid by hand.
       </p>
     </div>
   );
 }
 
-// The puzzle's full 7-letter set. sbsolver supplies all seven; a hand-pasted
+// The puzzle's full 7-letter set. A fetch supplies all seven; a hand-pasted
 // grid only reveals the letters that begin an answer, so the user must confirm
 // the rest (letters used only mid-word are otherwise lost — the #19 regression).
 function LetterSetInput({
@@ -151,7 +151,7 @@ function LetterSetInput({
       />
       {complete ? (
         <p className="text-muted-foreground text-xs">
-          All seven puzzle letters. Fetched from sbsolver automatically.
+          All seven puzzle letters. Fetched automatically.
         </p>
       ) : (
         <p className="rounded-md bg-amber-500/10 px-3 py-2 text-foreground text-xs">
@@ -348,9 +348,8 @@ export function SetupPanel({
   );
 
   // Picking a date is the primary way to load a puzzle. If that date already has
-  // a saved puzzle, switch to it directly; otherwise resolve it to the sbsolver
-  // puzzle number server-side and scrape it, with the picked date as the save
-  // target.
+  // a saved puzzle, switch to it directly; otherwise load it from the NYT
+  // server-side, with the picked date as the save target.
   const handleDateSelect = useCallback(
     (next: string) => {
       if (dates.includes(next)) {
@@ -360,7 +359,7 @@ export function SetupPanel({
       runFetch(
         () => fetchPuzzleByDateAction(next),
         () => next,
-        "Couldn't reach sbsolver. Try again."
+        "Couldn't reach the NYT. Try again."
       );
     },
     [dates, onSelectExisting, runFetch]
@@ -518,7 +517,7 @@ export function SetupPanel({
             Load a puzzle
           </h2>
           <p className="max-w-md text-muted-foreground text-sm leading-relaxed">
-            Pick a date to load that day&apos;s puzzle from sbsolver, or load
+            Pick a date to load that day&apos;s puzzle from the NYT, or load
             sample data for development.
           </p>
         </div>
@@ -581,9 +580,10 @@ export function SetupPanel({
                   ) : null}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Defaults to today. Pick any date back to May 9, 2018 to load
-                  that day&apos;s puzzle automatically. Highlighted dates are
-                  already saved and open instantly.
+                  Defaults to today. Puzzles from the last two weeks load
+                  automatically from the NYT; for older dates, paste the grid
+                  and hints below. Highlighted dates are already saved and open
+                  instantly.
                 </p>
                 <FetchStatusMessages
                   date={date}
