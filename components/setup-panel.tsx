@@ -314,6 +314,19 @@ export function SetupPanel({
     []
   );
 
+  // Clears a previous result after a failed lookup, so the empty fields are
+  // pasted into and saved under `failedTarget` (the picked date, or null to
+  // fall back to the page date) rather than the earlier fetch's date.
+  const resetResult = useCallback((failedTarget: string | null) => {
+    setMatrixText("");
+    setHintsText("");
+    setFetchedDate(failedTarget);
+    setFailedPrefixes([]);
+    setCenterLetter(null);
+    setLetterSet("");
+    setPangramCount(null);
+  }, []);
+
   // Runs a scrape and applies it only if no newer request has started. Keeps the
   // resolved date local (via applyResult → fetchedDate) rather than touching the
   // parent SWR key, so this panel isn't remounted mid-fetch.
@@ -321,6 +334,7 @@ export function SetupPanel({
     async (
       fetcher: () => Promise<FetchPuzzleResult>,
       targetDate: (result: FetchPuzzleResult & { ok: true }) => string | null,
+      failedTarget: string | null,
       reachError: string
     ) => {
       requestToken.current += 1;
@@ -336,11 +350,13 @@ export function SetupPanel({
         if (result.ok) {
           applyResult(result, targetDate(result));
         } else {
+          resetResult(failedTarget);
           setFetchError(result.error);
         }
         setShowFields(true);
       } catch {
         if (token === requestToken.current) {
+          resetResult(failedTarget);
           setFetchError(reachError);
           setShowFields(true);
         }
@@ -350,7 +366,7 @@ export function SetupPanel({
         }
       }
     },
-    [applyResult]
+    [applyResult, resetResult]
   );
 
   // Picking a date is the primary way to load a puzzle. If that date already has
@@ -365,6 +381,7 @@ export function SetupPanel({
       runFetch(
         () => fetchPuzzleByDateAction(next),
         () => next,
+        next,
         "Couldn't reach the NYT. Try again."
       );
     },
@@ -375,6 +392,7 @@ export function SetupPanel({
     runFetch(
       () => fetchPuzzleFromUrlAction(url),
       (result) => result.date,
+      null,
       "Couldn't reach the puzzle. Check the URL and try again."
     );
   }, [runFetch, url]);
