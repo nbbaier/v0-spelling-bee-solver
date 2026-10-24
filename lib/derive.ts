@@ -1,5 +1,11 @@
 import type { Puzzle } from "./types";
 
+/** Completion follows the same entered-word and matrix totals as progress. */
+export function isPuzzleComplete(puzzle: Puzzle): boolean {
+  const { foundWords, totalWords } = derive(puzzle);
+  return totalWords > 0 && foundWords >= totalWords;
+}
+
 /** Running counts of found vs remaining answers, by start letter and word length. */
 export interface Derived {
   /** `found[letter][length]` = number of entered words in that cell. */

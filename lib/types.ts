@@ -8,6 +8,12 @@ export interface HintSlot {
   word: string | null;
 }
 
+/** Saved-date index and the subset whose entered words meet the matrix total. */
+export interface PuzzleDates {
+  completedDates: string[];
+  dates: string[];
+}
+
 /** Static puzzle definition stored at `sbs:<DATE>:matrix`. */
 export interface MatrixData {
   /**

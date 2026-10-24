@@ -1,8 +1,9 @@
 import "server-only";
 import { assemblePuzzle, type StoredMatrix } from "./assemble-puzzle";
+import { isPuzzleComplete } from "./derive";
 import { isSampleId, keys } from "./keys";
 import { redis } from "./redis";
-import type { HintSlot, MatrixData, Puzzle } from "./types";
+import type { HintSlot, MatrixData, Puzzle, PuzzleDates } from "./types";
 
 /**
  * Loads matrix, prefix slots, and entered words for `date`.
@@ -101,4 +102,17 @@ export async function clearWordsForSlots(
 export async function listDates(): Promise<string[]> {
   const dates = await redis.smembers(keys.dates());
   return (dates ?? []).sort().reverse();
+}
+
+/** Derives calendar completion from existing progress, including older puzzles. */
+export async function listPuzzleDates(): Promise<PuzzleDates> {
+  const dates = await listDates();
+  const puzzles = await Promise.all(dates.map(getPuzzle));
+  return {
+    completedDates: dates.filter((_, index) => {
+      const puzzle = puzzles[index];
+      return puzzle !== null && isPuzzleComplete(puzzle);
+    }),
+    dates,
+  };
 }

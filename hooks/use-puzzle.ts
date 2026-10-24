@@ -9,15 +9,12 @@ import {
   savePuzzleAction,
   setWordAction,
 } from "@/app/actions";
+import { isPuzzleComplete } from "@/lib/derive";
 import { isSampleId } from "@/lib/keys";
-import type { HintSlot, MatrixData, Puzzle } from "@/lib/types";
+import type { HintSlot, MatrixData, Puzzle, PuzzleDates } from "@/lib/types";
 
 interface PuzzleResponse {
   puzzle: Puzzle | null;
-}
-
-interface DatesResponse {
-  dates: string[];
 }
 
 const fetcher = async <T>(url: string): Promise<T> => {
@@ -45,7 +42,7 @@ export function usePuzzle(date: string) {
     data: datesData,
     error: datesErrorRaw,
     mutate: reloadDates,
-  } = useSWR<DatesResponse>(DATES_KEY, fetcher, {
+  } = useSWR<PuzzleDates>(DATES_KEY, fetcher, {
     revalidateOnFocus: false,
   });
 
@@ -58,23 +55,52 @@ export function usePuzzle(date: string) {
   // Surface a load failure (only meaningful before any list has been cached) so
   // the UI can offer a retry instead of leaving the pickers silently disabled.
   const datesError = !datesReady && datesErrorRaw !== undefined;
+  // Overlay optimistic progress for the active puzzle, including rollbacks.
+  const completedDateSet = new Set(datesData?.completedDates ?? []);
+  if (puzzle && !isSampleId(date) && dates.includes(date)) {
+    if (isPuzzleComplete(puzzle)) {
+      completedDateSet.add(date);
+    } else {
+      completedDateSet.delete(date);
+    }
+  }
+  const completedDates = Array.from(completedDateSet);
 
   // Apply an update to the single date-index cache entry.
   const updateDates = useCallback(
-    (update: (current: string[]) => string[]) => {
+    (update: (current: PuzzleDates) => PuzzleDates) => {
       if (!datesData) {
         // No authoritative list cached yet — revalidate to pull the server's
         // list (which already reflects the save/delete we just persisted) rather
         // than optimistically mutating from an empty array and clobbering it.
-        return globalMutate<DatesResponse>(DATES_KEY);
+        return globalMutate<PuzzleDates>(DATES_KEY);
       }
-      return globalMutate<DatesResponse>(
+      return globalMutate<PuzzleDates>(
         DATES_KEY,
-        { dates: update(datesData.dates) },
+        (current) => (current ? update(current) : current),
         { revalidate: false }
       );
     },
     [globalMutate, datesData]
+  );
+
+  // Keep completion for other dates available after navigating away. Use the
+  // mutation's resolved puzzle so failed writes never commit an index change.
+  const updateCompletion = useCallback(
+    (response: PuzzleResponse | undefined) => {
+      const saved = response?.puzzle;
+      if (!saved || isSampleId(saved.date)) {
+        return;
+      }
+      return updateDates((current) => ({
+        ...current,
+        completedDates: [
+          ...current.completedDates.filter((d) => d !== saved.date),
+          ...(isPuzzleComplete(saved) ? [saved.date] : []),
+        ],
+      }));
+    },
+    [updateDates]
   );
 
   // Create/replace the puzzle for the current date (or an explicit id, e.g. "sample").
@@ -109,23 +135,26 @@ export function usePuzzle(date: string) {
           await globalMutate(keyForDate(id), response, { revalidate: false });
         }
         if (!isSampleId(id)) {
-          await updateDates((current) =>
-            Array.from(new Set([id, ...current]))
+          await updateDates((current) => ({
+            ...current,
+            dates: Array.from(new Set([id, ...current.dates]))
               .sort()
-              .reverse()
-          );
+              .reverse(),
+          }));
+          // Replacing a definition retains stored words; read their status.
+          await reloadDates();
         }
         return id;
       } finally {
         setSaving(false);
       }
     },
-    [date, mutate, globalMutate, updateDates]
+    [date, mutate, globalMutate, updateDates, reloadDates]
   );
 
   // Record or clear a found word, with optimistic UI.
   const setWord = useCallback(
-    (slotId: string, word: string | null) => {
+    async (slotId: string, word: string | null) => {
       const cleaned =
         word && word.trim().length > 0 ? word.trim().toUpperCase() : null;
       const apply = (current: PuzzleResponse | undefined): PuzzleResponse => {
@@ -141,15 +170,16 @@ export function usePuzzle(date: string) {
           },
         };
       };
-      mutate(
+      const response = await mutate(
         async (current) => {
           await setWordAction(date, slotId, cleaned);
           return apply(current);
         },
         { optimisticData: apply, revalidate: false }
       );
+      await updateCompletion(response);
     },
-    [date, mutate]
+    [date, mutate, updateCompletion]
   );
 
   // Remove the current puzzle and return to the loader.
@@ -164,7 +194,10 @@ export function usePuzzle(date: string) {
         { optimisticData: { puzzle: null }, revalidate: false }
       );
       if (!isSampleId(date)) {
-        await updateDates((current) => current.filter((d) => d !== date));
+        await updateDates((current) => ({
+          completedDates: current.completedDates.filter((d) => d !== date),
+          dates: current.dates.filter((d) => d !== date),
+        }));
       }
     } finally {
       setSaving(false);
@@ -174,7 +207,7 @@ export function usePuzzle(date: string) {
   // Clear entered words for the current puzzle. Pass a list of slot IDs to clear
   // only those slots; omit it to clear every word.
   const clearWords = useCallback(
-    (slotIds?: string[]) => {
+    async (slotIds?: string[]) => {
       const targetIds = slotIds ? new Set(slotIds) : null;
       const clearScoped = (
         current: PuzzleResponse | undefined
@@ -191,7 +224,7 @@ export function usePuzzle(date: string) {
           },
         };
       };
-      mutate(
+      const response = await mutate(
         async (current) => {
           if (targetIds && slotIds) {
             await clearWordsForSlotsAction(date, slotIds);
@@ -205,13 +238,15 @@ export function usePuzzle(date: string) {
           revalidate: false,
         }
       );
+      await updateCompletion(response);
     },
-    [date, mutate]
+    [date, mutate, updateCompletion]
   );
 
   const isSample = isSampleId(date);
   return {
     clearWords,
+    completedDates,
     date,
     dates,
     datesError,

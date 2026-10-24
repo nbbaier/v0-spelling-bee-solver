@@ -44,6 +44,7 @@ interface Props {
   // A date the parent wants scraped automatically (the user picked a date with
   // no saved puzzle). Consumed once via onAutoFetchHandled.
   autoFetchDate: string | null;
+  completedDates: string[];
   date: string;
   // Dates that already have a saved puzzle — shown as indicators in the picker
   // and used to load existing puzzles directly instead of re-scraping.
@@ -207,6 +208,7 @@ function FetchStatusMessages({
 }
 
 export function SetupPanel({
+  completedDates,
   date,
   dates,
   datesReady,
@@ -583,6 +585,7 @@ export function SetupPanel({
                 <Label>Puzzle date</Label>
                 <div className="flex items-center gap-3">
                   <DatePicker
+                    completedDates={completedDates}
                     disabled={!datesReady}
                     disabledDates={datesWithData}
                     enabledDateIndicator

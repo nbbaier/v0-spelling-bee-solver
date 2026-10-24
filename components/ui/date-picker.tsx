@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { type ComponentProps, useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -11,6 +11,7 @@ import {
 import { toLocalISO } from "@/lib/keys";
 
 interface DatePickerProps {
+  completedDates?: string[];
   disabled?: boolean;
   disabledDates?: Date[];
   enabledDateIndicator?: boolean;
@@ -20,12 +21,44 @@ interface DatePickerProps {
   value: Date;
 }
 
+function PuzzleDayButton({
+  children,
+  modifiers,
+  ...props
+}: ComponentProps<typeof CalendarDayButton>) {
+  const status = modifiers.complete ? "Complete" : "Incomplete";
+  const hasPuzzle = modifiers.hasData;
+
+  return (
+    <CalendarDayButton
+      {...props}
+      aria-label={
+        hasPuzzle ? `${props["aria-label"]}, ${status}` : props["aria-label"]
+      }
+      className={hasPuzzle ? "pb-2" : undefined}
+      modifiers={modifiers}
+      title={hasPuzzle ? status : undefined}
+    >
+      {children}
+      {hasPuzzle ? (
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[10px] leading-none ${modifiers.complete ? "font-bold text-emerald-700 dark:text-emerald-400" : "text-foreground"}`}
+        >
+          {modifiers.complete ? "✓" : "○"}
+        </span>
+      ) : null}
+    </CalendarDayButton>
+  );
+}
+
 export function DatePicker({
   value,
   onDateChange,
   disabled = false,
   disabledDates = [],
   enabledDateIndicator = false,
+  completedDates = [],
   minDate,
   maxDate,
 }: DatePickerProps) {
@@ -43,6 +76,10 @@ export function DatePicker({
     }
     return new Set(disabledDates.map(toLocalISO));
   }, [disabledDates, enabledDateIndicator]);
+  const completedDateSet = useMemo(
+    () => new Set(completedDates),
+    [completedDates]
+  );
 
   const isDateDisabled = useCallback(
     (date: Date) => {
@@ -87,11 +124,15 @@ export function DatePicker({
       />
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
+          className="[--cell-size:--spacing(9)]"
+          components={{ DayButton: PuzzleDayButton }}
+          defaultMonth={value}
           disabled={isDateDisabled}
           mode="single"
           modifiers={
             enabledDateIndicator
               ? {
+                  complete: (date) => completedDateSet.has(toLocalISO(date)),
                   hasData: (date) => enabledDateSet.has(toLocalISO(date)),
                 }
               : {}
@@ -99,14 +140,29 @@ export function DatePicker({
           modifiersClassNames={
             enabledDateIndicator
               ? {
-                  hasData:
-                    "bg-primary/20 font-semibold text-primary relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-primary",
+                  hasData: "bg-primary/20 font-semibold text-foreground",
                 }
               : {}
           }
           onSelect={handleDateSelect}
           selected={value}
         />
+        {enabledDateIndicator ? (
+          <div className="flex justify-center gap-4 border-t px-3 py-2 text-muted-foreground text-xs">
+            <span>
+              <span
+                aria-hidden="true"
+                className="font-bold text-emerald-700 dark:text-emerald-400"
+              >
+                ✓
+              </span>{" "}
+              Complete
+            </span>
+            <span>
+              <span aria-hidden="true">○</span> Incomplete
+            </span>
+          </div>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

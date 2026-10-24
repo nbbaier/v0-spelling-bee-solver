@@ -33,6 +33,7 @@ export function SolverApp({ date }: SolverAppProps) {
     setWord,
     deletePuzzle,
     dates,
+    completedDates,
     datesReady,
     datesError,
     reloadDates,
@@ -144,6 +145,7 @@ export function SolverApp({ date }: SolverAppProps) {
     }
     return (
       <DatePicker
+        completedDates={completedDates}
         disabled={!datesReady}
         disabledDates={disabledDates}
         enabledDateIndicator
@@ -169,6 +171,7 @@ export function SolverApp({ date }: SolverAppProps) {
         <div className="space-y-4">
           <SetupPanel
             autoFetchDate={autoFetchDate}
+            completedDates={completedDates}
             date={date}
             dates={dates}
             datesError={datesError}
