@@ -1,18 +1,59 @@
 "use client";
 
 import { cn } from "cn";
+import { type PointerEvent, useState } from "react";
+import {
+  type CellPosition,
+  type Highlight,
+  highlightFor,
+  TOTAL,
+} from "@/lib/crosshair";
 import type { Derived } from "@/lib/derive";
 import { normalizeLetterSet } from "@/lib/letters";
 import type { Puzzle } from "@/lib/types";
+
+// The crosshair is drawn with inset shadows so it sits over whatever
+// background a cell already has (found shading, center tint, sticky fill).
+// Gold edge lines along the band keep it distinct from found shading.
+// Class names stay literal so Tailwind can find them.
+const HIGHLIGHT_CLASS: Record<Highlight, string | false> = {
+  column:
+    "shadow-[inset_1px_0_0_var(--primary),inset_-1px_0_0_var(--primary),inset_0_0_0_100vmax_color-mix(in_oklch,var(--primary)_14%,transparent)]",
+  focus:
+    "shadow-[inset_0_0_0_2px_var(--primary),inset_0_0_0_100vmax_color-mix(in_oklch,var(--primary)_32%,transparent)]",
+  none: false,
+  row: "shadow-[inset_0_1px_0_var(--primary),inset_0_-1px_0_var(--primary),inset_0_0_0_100vmax_color-mix(in_oklch,var(--primary)_14%,transparent)]",
+};
+
+// Hover state for the crosshair. Touch pointers are ignored so a tap never
+// leaves a highlight behind.
+function useCrosshair() {
+  const [hovered, setHovered] = useState<CellPosition | null>(null);
+  return {
+    cellProps: (position: CellPosition) => ({
+      className: HIGHLIGHT_CLASS[highlightFor(hovered, position)],
+      onPointerEnter: (event: PointerEvent) => {
+        if (event.pointerType !== "touch") {
+          setHovered(position);
+        }
+      },
+    }),
+    clear: () => setHovered(null),
+  };
+}
+
+type CellProps = ReturnType<ReturnType<typeof useCrosshair>["cellProps"]>;
 
 function Cell({
   found,
   total,
   emphasis = false,
+  crosshair,
 }: {
   found: number;
   total: number;
   emphasis?: boolean;
+  crosshair: CellProps;
 }) {
   const empty = total === 0;
   const complete = total > 0 && found >= total;
@@ -23,11 +64,37 @@ function Cell({
         emphasis && "font-semibold",
         empty && "bg-muted/40 text-muted-foreground/40",
         !empty && complete && "bg-primary/25 font-semibold text-foreground",
-        !(empty || complete) && found > 0 && "bg-primary/8 text-foreground"
+        !(empty || complete) && found > 0 && "bg-primary/8 text-foreground",
+        crosshair.className
       )}
+      onPointerEnter={crosshair.onPointerEnter}
     >
       {empty ? "—" : `${found}/${total}`}
     </td>
+  );
+}
+
+function SumHeader({
+  className,
+  crosshair,
+  scope,
+}: {
+  className: string;
+  crosshair: CellProps;
+  scope?: "row";
+}) {
+  return (
+    <th
+      className={cn(
+        "border border-border bg-secondary font-medium text-secondary-foreground text-xs uppercase tracking-wide",
+        className,
+        crosshair.className
+      )}
+      onPointerEnter={crosshair.onPointerEnter}
+      scope={scope}
+    >
+      Σ
+    </th>
   );
 }
 
@@ -133,33 +200,46 @@ export function MatrixGrid({
     totalWords,
   } = derived;
   const letterSet = normalizeLetterSet(puzzle.letterSet).split("");
+  const crosshair = useCrosshair();
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
       {/* Only the table scrolls; the footer stays put below it. */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse border-hidden">
+        <table
+          className="w-full border-collapse border-hidden"
+          onPointerLeave={crosshair.clear}
+        >
           <thead>
             <tr>
               <th className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">
                 Letter
               </th>
-              {lengths.map((len) => (
-                <th
-                  className="border border-border bg-card px-2 py-2 text-center font-semibold text-card-foreground text-sm"
-                  key={len}
-                >
-                  {len}
-                </th>
-              ))}
-              <th className="border border-border bg-secondary px-2 py-2 text-center font-medium text-secondary-foreground text-xs uppercase tracking-wide">
-                Σ
-              </th>
+              {lengths.map((len) => {
+                const header = crosshair.cellProps({ col: len, row: null });
+                return (
+                  <th
+                    className={cn(
+                      "border border-border bg-card px-2 py-2 text-center font-semibold text-card-foreground text-sm",
+                      header.className
+                    )}
+                    key={len}
+                    onPointerEnter={header.onPointerEnter}
+                  >
+                    {len}
+                  </th>
+                );
+              })}
+              <SumHeader
+                className="px-2 py-2 text-center"
+                crosshair={crosshair.cellProps({ col: TOTAL, row: null })}
+              />
             </tr>
           </thead>
           <tbody>
             {startLetters.map((letter) => {
               const isCenter = letter === centerLetter;
+              const header = crosshair.cellProps({ col: null, row: letter });
               return (
                 <tr key={letter}>
                   <th
@@ -170,8 +250,10 @@ export function MatrixGrid({
                       // through; the center tint is mixed into the card colour.
                       isCenter
                         ? "bg-[color-mix(in_oklch,var(--primary)_15%,var(--card))]"
-                        : "bg-card"
+                        : "bg-card",
+                      header.className
                     )}
+                    onPointerEnter={header.onPointerEnter}
                     scope="row"
                     title={isCenter ? "Center letter" : undefined}
                   >
@@ -187,12 +269,14 @@ export function MatrixGrid({
                   </th>
                   {lengths.map((len) => (
                     <Cell
+                      crosshair={crosshair.cellProps({ col: len, row: letter })}
                       found={found[letter]?.[len] ?? 0}
                       key={len}
                       total={puzzle.grid[letter]?.[len] ?? 0}
                     />
                   ))}
                   <Cell
+                    crosshair={crosshair.cellProps({ col: TOTAL, row: letter })}
                     emphasis
                     found={letterFound[letter] ?? 0}
                     total={letterTotals[letter] ?? 0}
@@ -201,21 +285,26 @@ export function MatrixGrid({
               );
             })}
             <tr>
-              <th
-                className="sticky left-0 z-10 border border-border bg-secondary px-3 py-1.5 text-left font-medium text-secondary-foreground text-xs uppercase tracking-wide"
+              <SumHeader
+                className="sticky left-0 z-10 px-3 py-1.5 text-left"
+                crosshair={crosshair.cellProps({ col: null, row: TOTAL })}
                 scope="row"
-              >
-                Σ
-              </th>
+              />
               {lengths.map((len) => (
                 <Cell
+                  crosshair={crosshair.cellProps({ col: len, row: TOTAL })}
                   emphasis
                   found={lengthFound[len] ?? 0}
                   key={len}
                   total={lengthTotals[len] ?? 0}
                 />
               ))}
-              <Cell emphasis found={foundWords} total={totalWords} />
+              <Cell
+                crosshair={crosshair.cellProps({ col: TOTAL, row: TOTAL })}
+                emphasis
+                found={foundWords}
+                total={totalWords}
+              />
             </tr>
           </tbody>
         </table>
