@@ -367,8 +367,10 @@ export function HintsList({
 
   return (
     <div className="@container rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
-      {/* Header row */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      {/* Header row. Sticky so its controls stay reachable on long lists; the
+          negative margins stretch its opaque background across the card's
+          padding so pinned slots don't show beside it. */}
+      <div className="sticky top-0 z-10 -mx-4 -mt-2 mb-2 flex flex-wrap items-center justify-between gap-2 bg-card px-4 py-2 sm:-mx-5 sm:px-5">
         <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
           Words
         </h2>
