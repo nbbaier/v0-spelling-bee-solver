@@ -228,6 +228,7 @@ export function SolverApp({ date }: SolverAppProps) {
               availableLengthsByLetter={availableLengthsByLetter}
               centerLetter={puzzle.centerLetter}
               hints={puzzle.hints}
+              letterSet={puzzle.letterSet}
               onClearWords={clearWords}
               onSetWord={setWord}
             />

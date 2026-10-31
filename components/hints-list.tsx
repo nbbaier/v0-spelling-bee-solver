@@ -11,6 +11,7 @@ import {
   type MouseEvent,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from "react";
@@ -27,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
+import { isPangram } from "@/lib/derive";
 import {
   HINT_VIEWS,
   type HintView,
@@ -47,13 +49,16 @@ function SlotInput({
   slot,
   allowedLetters,
   existingWords,
+  letterSet,
   onSetWord,
 }: {
   slot: HintSlot;
   allowedLetters: string[];
   existingWords: Set<string>;
+  letterSet: string;
   onSetWord: (slotId: string, word: string | null) => void;
 }) {
+  const pangramId = useId();
   const [value, setValue] = useState(slot.word ?? "");
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +69,7 @@ function SlotInput({
   }, [slot.word]);
 
   const filled = Boolean(slot.word);
+  const pangram = slot.word !== null && isPangram(slot.word, letterSet);
 
   const validate = useCallback(
     (raw: string): string | null => {
@@ -128,15 +134,15 @@ function SlotInput({
   return (
     <div className="relative">
       <Input
+        aria-describedby={pangram && !error ? pangramId : undefined}
         aria-invalid={Boolean(error)}
         aria-label={`${slot.prefix} word`}
         autoCapitalize="characters"
         autoCorrect="off"
         className={cn(
           "h-9 font-mono text-base uppercase md:text-sm",
-          filled &&
-            !error &&
-            "border-primary/60 bg-primary/10 pr-10 font-semibold",
+          filled && !error && "border-primary/60 bg-primary/10 font-semibold",
+          filled && !error && (pangram ? "pr-24" : "pr-10"),
           error &&
             "border-destructive bg-destructive/5 pr-10 focus-visible:ring-destructive"
         )}
@@ -148,6 +154,14 @@ function SlotInput({
         value={value}
       />
       {error ? <p className="mt-1 text-destructive text-xs">{error}</p> : null}
+      {pangram && !error ? (
+        <span
+          className="pointer-events-none absolute top-1/2 right-8 -translate-y-1/2 rounded-full bg-primary px-1.5 py-0.5 font-medium font-sans text-[10px] text-primary-foreground uppercase tracking-wide"
+          id={pangramId}
+        >
+          Pangram
+        </span>
+      ) : null}
       {filled && !error && (
         <div className="group/del absolute top-1/2 right-2 size-5 -translate-y-1/2">
           <span className="absolute inset-0 inline-flex items-center justify-center font-medium text-muted-foreground text-xs transition-opacity group-focus-within/del:opacity-0 group-hover/del:opacity-0">
@@ -172,6 +186,7 @@ export function HintsList({
   allowedLetters,
   availableLengthsByLetter,
   centerLetter,
+  letterSet,
   onSetWord,
   onClearWords,
 }: {
@@ -182,6 +197,8 @@ export function HintsList({
   // lengths the remaining slots *could* be, not lengths this prefix has.
   availableLengthsByLetter: Record<string, number[]>;
   centerLetter: string | null;
+  // Puzzle letter set, for pangram badges; empty when unknown (no badges).
+  letterSet: string;
   onSetWord: (slotId: string, word: string | null) => void;
   // Clears entered words; pass slot IDs to clear only those, omit to clear all.
   onClearWords: (slotIds?: string[]) => void;
@@ -553,6 +570,7 @@ export function HintsList({
                       allowedLetters={allowedLetters}
                       existingWords={existingWords}
                       key={slot.id}
+                      letterSet={letterSet}
                       onSetWord={onSetWord}
                       slot={slot}
                     />
