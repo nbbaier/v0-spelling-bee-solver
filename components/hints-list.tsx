@@ -1,7 +1,7 @@
 "use client";
+import { ToggleGroup } from "@base-ui/react/toggle-group";
 import Cancel01Icon from "@hugeicons/core-free-icons/Cancel01Icon";
 import Delete02Icon from "@hugeicons/core-free-icons/Delete02Icon";
-import ViewOffIcon from "@hugeicons/core-free-icons/ViewOffIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "cn";
 import {
@@ -26,8 +26,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
+import {
+  HINT_VIEWS,
+  type HintView,
+  isGroupVisible,
+  isHintView,
+  isSlotVisible,
+} from "@/lib/hint-view";
 import { hasOnlyAllowedLetters } from "@/lib/letters";
 import type { HintSlot } from "@/lib/types";
+
+const VIEW_LABELS: Record<HintView, string> = {
+  all: "All",
+  found: "Found",
+  remaining: "Remaining",
+};
 
 function SlotInput({
   slot,
@@ -175,7 +188,7 @@ export function HintsList({
   const [globalInput, setGlobalInput] = useState("");
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
-  const [hideCompleted, setHideCompleted] = useState(false);
+  const [view, setView] = useState<HintView>("all");
   const [showClearDialog, setShowClearDialog] = useState(false);
 
   // All unique first letters across prefixes, sorted.
@@ -228,12 +241,9 @@ export function HintsList({
         if (letterFilter && prefix[0] !== letterFilter) {
           return false;
         }
-        if (hideCompleted && slots.every((s) => s.word)) {
-          return false;
-        }
-        return true;
+        return isGroupVisible(slots, view);
       }),
-    [groups, letterFilter, hideCompleted]
+    [groups, letterFilter, view]
   );
 
   const handleGlobalSubmit = useCallback(() => {
@@ -316,6 +326,14 @@ export function HintsList({
     [handleGlobalSubmit]
   );
 
+  const handleViewChange = useCallback((groupValue: unknown[]) => {
+    // Pressing the active item empties the group; keep the current view.
+    const [next] = groupValue;
+    if (isHintView(next)) {
+      setView(next);
+    }
+  }, []);
+
   const handleAllLetters = useCallback(() => {
     setLetterFilter(null);
   }, []);
@@ -354,16 +372,18 @@ export function HintsList({
             <HugeiconsIcon icon={Delete02Icon} size={13} />
             {letterFilter ? `Clear ${letterFilter}` : "Clear all"}
           </Button>
-          <Toggle
-            aria-label="Hide completed words"
-            className="gap-1.5 text-xs"
-            onPressedChange={setHideCompleted}
-            pressed={hideCompleted}
-            size="sm"
+          <ToggleGroup
+            aria-label="View"
+            className="flex items-center gap-0.5 rounded-lg border border-border p-0.5"
+            onValueChange={handleViewChange}
+            value={[view]}
           >
-            <HugeiconsIcon icon={ViewOffIcon} size={13} />
-            Hide completed
-          </Toggle>
+            {HINT_VIEWS.map((v) => (
+              <Toggle className="text-xs" key={v} size="sm" value={v}>
+                {VIEW_LABELS[v]}
+              </Toggle>
+            ))}
+          </ToggleGroup>
         </div>
       </div>
 
@@ -490,7 +510,7 @@ export function HintsList({
               </div>
               <div className="flex flex-col gap-2">
                 {slots
-                  .filter((slot) => !(hideCompleted && slot.word))
+                  .filter((slot) => isSlotVisible(slot, view))
                   .map((slot) => (
                     <SlotInput
                       allowedLetters={allowedLetters}
