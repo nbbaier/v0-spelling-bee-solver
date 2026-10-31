@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { derive } from "./derive";
+import { derive, isPangram } from "./derive";
 import type { Puzzle } from "./types";
 
 // Characterization test for progress derivation: totals come from the grid,
 // found counts come from entered words, and a word is bucketed by its first
 // letter and length.
 
-function makePuzzle(words: (string | null)[]): Puzzle {
+function makePuzzle(words: (string | null)[], letterSet = "DGNORUI"): Puzzle {
   return {
     centerLetter: "O",
     date: "2024-01-01",
     grid: { D: { 4: 2, 5: 1 }, O: { 4: 1 } },
     hints: words.map((word, i) => ({ id: `S-${i}`, prefix: "XXX", word })),
     lengths: [4, 5],
-    letterSet: "DGNORUI",
+    letterSet,
     pangramCount: null,
     startLetters: ["D", "O"],
   };
@@ -46,5 +46,46 @@ describe("derive", () => {
 
     expect(d.foundWords).toBe(1);
     expect(d.found).toEqual({ D: { 4: 1 }, O: {} });
+  });
+});
+
+describe("isPangram", () => {
+  const letterSet = "DGNORUI";
+
+  it("is true when the word uses all seven letters", () => {
+    expect(isPangram("GROUNDING", letterSet)).toBe(true);
+  });
+
+  it("is false when the word misses a letter", () => {
+    expect(isPangram("GROUND", letterSet)).toBe(false);
+  });
+
+  it("counts repeated letters", () => {
+    expect(isPangram("ROUNDINGDOG", letterSet)).toBe(true);
+  });
+
+  it("ignores case in the word and the letter set", () => {
+    expect(isPangram("grounding", letterSet)).toBe(true);
+    expect(isPangram("GROUNDING", "dgnorui")).toBe(true);
+  });
+
+  it("is false when the letter set is empty", () => {
+    expect(isPangram("GROUNDING", "")).toBe(false);
+  });
+});
+
+describe("derive pangramsFound", () => {
+  it("counts entered words that are pangrams", () => {
+    const d = derive(makePuzzle(["GROUNDING", "door", null, " grounding "]));
+
+    expect(d.pangramsFound).toBe(2);
+  });
+
+  it("is 0 with no entered words", () => {
+    expect(derive(makePuzzle([])).pangramsFound).toBe(0);
+  });
+
+  it("is 0 when the letter set is unknown", () => {
+    expect(derive(makePuzzle(["GROUNDING"], "")).pangramsFound).toBe(0);
   });
 });

@@ -31,14 +31,21 @@ function Cell({
   );
 }
 
-// "· 3 pangrams" (singular "1 pangram") after the letter pills; nothing when nothing count is unknown (null).
-function PangramNote({ pangramCount }: { pangramCount: number | null }) {
-  if (pangramCount === null) {
-    return null;
-  }
+// Pangram progress after the letter pills: "1/2 pangrams" when the total is
+// known (singular follows the total), else the found count alone ("1 pangram").
+function PangramNote({
+  pangramCount,
+  pangramsFound,
+}: {
+  pangramCount: number | null;
+  pangramsFound: number;
+}) {
+  const noun = (pangramCount ?? pangramsFound) === 1 ? "pangram" : "pangrams";
   return (
-    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium font-mono text-muted-foreground text-xs transition-colors">
-      {pangramCount} {pangramCount === 1 ? "pangram" : "pangrams"}
+    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium font-mono text-muted-foreground text-xs tabular-nums transition-colors">
+      {pangramCount === null
+        ? `${pangramsFound} ${noun}`
+        : `${pangramsFound}/${pangramCount} ${noun}`}
     </span>
   );
 }
@@ -47,10 +54,12 @@ function MatrixFooter({
   centerLetter,
   letterSet,
   pangramCount,
+  pangramsFound,
 }: {
   centerLetter: string | null;
   letterSet: string[];
   pangramCount: number | null;
+  pangramsFound: number;
 }) {
   if (letterSet.length > 0) {
     return (
@@ -78,7 +87,10 @@ function MatrixFooter({
             );
           })}
         </span>
-        <PangramNote pangramCount={pangramCount} />
+        <PangramNote
+          pangramCount={pangramCount}
+          pangramsFound={pangramsFound}
+        />
       </div>
     );
   }
@@ -117,6 +129,7 @@ export function MatrixGrid({
     letterTotals,
     letterFound,
     foundWords,
+    pangramsFound,
     totalWords,
   } = derived;
   const letterSet = normalizeLetterSet(puzzle.letterSet).split("");
@@ -204,6 +217,7 @@ export function MatrixGrid({
         centerLetter={centerLetter}
         letterSet={letterSet}
         pangramCount={puzzle.pangramCount}
+        pangramsFound={pangramsFound}
       />
     </div>
   );

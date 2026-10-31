@@ -1,4 +1,19 @@
+import { normalizeLetterSet } from "./letters";
 import type { Puzzle } from "./types";
+
+/**
+ * Whether `word` uses every letter of `letterSet` (letters may repeat; case is
+ * ignored). Always `false` when the letter set is unknown (empty).
+ * See GLOSSARY.md → Pangram.
+ */
+export function isPangram(word: string, letterSet: string): boolean {
+  const letters = normalizeLetterSet(letterSet);
+  if (letters.length === 0) {
+    return false;
+  }
+  const upper = word.trim().toUpperCase();
+  return letters.split("").every((ch) => upper.includes(ch));
+}
 
 /** Completion follows the same entered-word and matrix totals as progress. */
 export function isPuzzleComplete(puzzle: Puzzle): boolean {
@@ -20,6 +35,8 @@ export interface Derived {
   letterFound: Record<string, number>;
   /** Matrix totals keyed by start letter. */
   letterTotals: Record<string, number>;
+  /** Number of entered words that are pangrams (0 when the letter set is unknown). */
+  pangramsFound: number;
   /** Sum of all matrix cells (total answers). */
   totalWords: number;
 }
@@ -58,6 +75,7 @@ export function derive(puzzle: Puzzle): Derived {
   }
 
   let foundWords = 0;
+  let pangramsFound = 0;
   for (const slot of puzzle.hints) {
     if (!slot.word) {
       continue;
@@ -69,6 +87,9 @@ export function derive(puzzle: Puzzle): Derived {
     const [letter] = w;
     const len = w.length;
     foundWords += 1;
+    if (isPangram(w, puzzle.letterSet)) {
+      pangramsFound += 1;
+    }
     if (found[letter] === undefined) {
       found[letter] = {};
     }
@@ -88,6 +109,7 @@ export function derive(puzzle: Puzzle): Derived {
     lengthTotals,
     letterFound,
     letterTotals,
+    pangramsFound,
     totalWords,
   };
 }
