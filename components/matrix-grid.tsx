@@ -1,7 +1,10 @@
 "use client";
 
+import ArrowDown01Icon from "@hugeicons/core-free-icons/ArrowDown01Icon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "cn";
-import { type PointerEvent, useState } from "react";
+import { type PointerEvent, useCallback, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   type CellPosition,
   type Highlight,
@@ -130,7 +133,7 @@ function MatrixFooter({
 }) {
   if (letterSet.length > 0) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-1.5 border-border border-t px-3 py-2 text-muted-foreground text-xs">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-1.5">
         {/* <span>Letters:</span> */}
         <span className="flex flex-wrap items-center gap-1">
           {letterSet.map((letter) => {
@@ -167,7 +170,7 @@ function MatrixFooter({
   }
 
   return (
-    <p className="flex items-center gap-1.5 border-border border-t px-3 py-2 text-muted-foreground text-xs">
+    <p className="flex flex-1 items-center gap-1.5">
       <span
         aria-hidden="true"
         className="inline-block size-1.5 rounded-full bg-primary"
@@ -201,11 +204,14 @@ export function MatrixGrid({
   } = derived;
   const letterSet = normalizeLetterSet(puzzle.letterSet).split("");
   const crosshair = useCrosshair();
+  const [expanded, setExpanded] = useState(true);
+  const tableId = useId();
+  const toggleExpanded = useCallback(() => setExpanded((open) => !open), []);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
       {/* Only the table scrolls; the footer stays put below it. */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" hidden={!expanded} id={tableId}>
         <table
           className="w-full border-collapse border-hidden"
           onPointerLeave={crosshair.clear}
@@ -309,12 +315,37 @@ export function MatrixGrid({
           </tbody>
         </table>
       </div>
-      <MatrixFooter
-        centerLetter={centerLetter}
-        letterSet={letterSet}
-        pangramCount={puzzle.pangramCount}
-        pangramsFound={pangramsFound}
-      />
+      {/* Collapsed, the card shrinks to this strip: the table hides and the
+          footer stays. The open state resets on reload (remembering it is #8). */}
+      <div
+        className={cn(
+          "flex items-center gap-1.5 px-3 py-2 text-muted-foreground text-xs",
+          expanded && "border-border border-t"
+        )}
+      >
+        <MatrixFooter
+          centerLetter={centerLetter}
+          letterSet={letterSet}
+          pangramCount={puzzle.pangramCount}
+          pangramsFound={pangramsFound}
+        />
+        <Button
+          aria-controls={tableId}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Hide matrix" : "Show matrix"}
+          className="ml-auto shrink-0 text-muted-foreground aria-expanded:bg-transparent aria-expanded:text-muted-foreground aria-expanded:hover:bg-muted aria-expanded:hover:text-foreground"
+          onClick={toggleExpanded}
+          size="icon-xs"
+          title={expanded ? "Hide matrix" : "Show matrix"}
+          variant="ghost"
+        >
+          <HugeiconsIcon
+            className={cn("transition-transform", expanded && "rotate-180")}
+            icon={ArrowDown01Icon}
+            size={14}
+          />
+        </Button>
+      </div>
     </div>
   );
 }
