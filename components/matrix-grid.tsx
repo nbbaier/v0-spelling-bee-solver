@@ -218,7 +218,12 @@ export function MatrixGrid({
         >
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">
+              {/* The corner is on no line, so entering it clears the crosshair
+                  without the pointer leaving the table. */}
+              <th
+                className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide"
+                onPointerEnter={crosshair.clear}
+              >
                 Letter
               </th>
               {lengths.map((len) => {
