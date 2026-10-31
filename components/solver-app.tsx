@@ -6,6 +6,16 @@ import { HintsList } from "@/components/hints-list";
 import { MatrixGrid } from "@/components/matrix-grid";
 import { ProgressSummary } from "@/components/progress-summary";
 import { SetupPanel } from "@/components/setup-panel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { usePuzzle } from "@/hooks/use-puzzle";
@@ -21,6 +31,15 @@ interface SolverAppProps {
 
 const routeForDate = (date: string): string =>
   date === SAMPLE_ID ? "/sample" : `/${date}`;
+
+const puzzleLabel = (date: string): string =>
+  date === SAMPLE_ID
+    ? "the sample puzzle"
+    : `the ${parseLocalDate(date).toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })} puzzle`;
 
 export function SolverApp({ date }: SolverAppProps) {
   const router = useRouter();
@@ -40,6 +59,7 @@ export function SolverApp({ date }: SolverAppProps) {
     clearWords,
   } = usePuzzle(date);
   const [autoFetchDate, setAutoFetchDate] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const routeEntry = useRef({ date, evaluated: false });
 
   // Evaluate each route entry once after its puzzle and date index have loaded.
@@ -113,6 +133,15 @@ export function SolverApp({ date }: SolverAppProps) {
     () => dates.map((d) => parseLocalDate(d)),
     [dates]
   );
+
+  const handleRequestDelete = useCallback(() => {
+    setShowDeleteDialog(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    setShowDeleteDialog(false);
+    deletePuzzle();
+  }, [deletePuzzle]);
 
   const handleLoad = useCallback(
     async (matrix: MatrixData, hints: HintSlot[], id: string) => {
@@ -204,12 +233,35 @@ export function SolverApp({ date }: SolverAppProps) {
             />
             <Button
               className="text-muted-foreground"
-              onClick={deletePuzzle}
+              onClick={handleRequestDelete}
               size="sm"
               variant="ghost"
             >
               Delete this puzzle
             </Button>
+            <AlertDialog
+              onOpenChange={setShowDeleteDialog}
+              open={showDeleteDialog}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this puzzle?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will remove {puzzleLabel(date)} and all its entered
+                    words. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleConfirmDelete}
+                  >
+                    Delete puzzle
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       );
