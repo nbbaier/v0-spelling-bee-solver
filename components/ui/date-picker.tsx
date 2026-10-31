@@ -146,6 +146,7 @@ export function DatePicker({
           }
           onSelect={handleDateSelect}
           selected={value}
+          weekStartsOn={1}
         />
         {enabledDateIndicator ? (
           <div className="flex justify-center gap-4 border-t px-3 py-2 text-muted-foreground text-xs">
