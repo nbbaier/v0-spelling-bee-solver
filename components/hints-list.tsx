@@ -357,11 +357,11 @@ export function HintsList({
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
       {/* Header row */}
-      <div className="mb-4 flex items-center justify-between gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
           Words
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             className="gap-1.5 text-muted-foreground text-xs hover:text-destructive"
             disabled={nothingToClear}
