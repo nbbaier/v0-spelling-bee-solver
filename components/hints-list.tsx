@@ -367,134 +367,137 @@ export function HintsList({
 
   return (
     <div className="@container rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
-      {/* Header row. Sticky so its controls stay reachable on long lists; the
-          negative margins stretch its opaque background across the card's
-          padding so pinned slots don't show beside it. */}
-      <div className="sticky top-0 z-10 -mx-4 -mt-2 mb-2 flex flex-wrap items-center justify-between gap-2 bg-card px-4 py-2 sm:-mx-5 sm:px-5">
-        <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
-          Words
-        </h2>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            className="gap-1.5 text-muted-foreground text-xs hover:text-destructive"
-            disabled={nothingToClear}
-            onClick={handleOpenClearDialog}
-            size="sm"
-            variant="ghost"
-          >
-            <HugeiconsIcon icon={Delete02Icon} size={13} />
-            {letterFilter ? `Clear ${letterFilter}` : "Clear all"}
-          </Button>
-          {/* Narrow cards can't fit the segmented control, so they get a
+      {/* Header row, word entry and letter filter, pinned together so they
+          stay reachable on long lists. The negative margins stretch the opaque
+          background across the card's padding so pinned slots don't show
+          beside it. */}
+      <div className="sticky top-0 z-10 -mx-4 -mt-2 mb-2 bg-card px-4 py-2 sm:-mx-5 sm:px-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
+            Words
+          </h2>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              className="gap-1.5 text-muted-foreground text-xs hover:text-destructive"
+              disabled={nothingToClear}
+              onClick={handleOpenClearDialog}
+              size="sm"
+              variant="ghost"
+            >
+              <HugeiconsIcon icon={Delete02Icon} size={13} />
+              {letterFilter ? `Clear ${letterFilter}` : "Clear all"}
+            </Button>
+            {/* Narrow cards can't fit the segmented control, so they get a
               select instead; only one is ever displayed. */}
-          <div className="relative @md:hidden">
-            <select
+            <div className="relative @md:hidden">
+              <select
+                aria-label="View"
+                className="h-7 appearance-none rounded-lg border border-border bg-transparent pr-7 pl-2.5 font-medium text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                onChange={handleViewSelect}
+                value={view}
+              >
+                {HINT_VIEWS.map((v) => (
+                  <option key={v} value={v}>
+                    {VIEW_LABELS[v]}
+                  </option>
+                ))}
+              </select>
+              <HugeiconsIcon
+                className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
+                icon={ArrowDown01Icon}
+                size={13}
+              />
+            </div>
+            <ToggleGroup
               aria-label="View"
-              className="h-7 appearance-none rounded-lg border border-border bg-transparent pr-7 pl-2.5 font-medium text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              onChange={handleViewSelect}
-              value={view}
+              className="@md:flex hidden items-center gap-0.5 rounded-lg border border-border p-0.5"
+              onValueChange={handleViewChange}
+              value={[view]}
             >
               {HINT_VIEWS.map((v) => (
-                <option key={v} value={v}>
+                <Toggle className="text-xs" key={v} size="sm" value={v}>
                   {VIEW_LABELS[v]}
-                </option>
+                </Toggle>
               ))}
-            </select>
-            <HugeiconsIcon
-              className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
-              icon={ArrowDown01Icon}
-              size={13}
-            />
+            </ToggleGroup>
           </div>
-          <ToggleGroup
-            aria-label="View"
-            className="@md:flex hidden items-center gap-0.5 rounded-lg border border-border p-0.5"
-            onValueChange={handleViewChange}
-            value={[view]}
-          >
-            {HINT_VIEWS.map((v) => (
-              <Toggle className="text-xs" key={v} size="sm" value={v}>
-                {VIEW_LABELS[v]}
-              </Toggle>
-            ))}
-          </ToggleGroup>
         </div>
-      </div>
 
-      {/* Global word entry */}
-      <div className="mb-3">
-        <Input
-          aria-invalid={Boolean(globalError)}
-          autoCapitalize="characters"
-          autoCorrect="off"
-          className={cn(
-            "h-9 font-mono text-base uppercase md:text-sm",
-            globalError &&
-              "border-destructive bg-destructive/5 focus-visible:ring-destructive"
-          )}
-          onChange={handleGlobalChange}
-          onKeyDown={handleGlobalKeyDown}
-          placeholder="Enter any word…"
-          spellCheck={false}
-          value={globalInput}
-        />
-        {globalError ? (
-          <p className="mt-1 text-destructive text-xs">{globalError}</p>
-        ) : null}
-      </div>
-
-      {/* Letter filter pills */}
-      {letters.length > 1 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          <button
-            aria-pressed={letterFilter === null}
+        {/* Global word entry */}
+        <div>
+          <Input
+            aria-invalid={Boolean(globalError)}
+            autoCapitalize="characters"
+            autoCorrect="off"
             className={cn(
-              "rounded-full px-2.5 py-0.5 font-medium text-xs transition-colors",
-              letterFilter === null
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/70"
+              "h-9 font-mono text-base uppercase md:text-sm",
+              globalError &&
+                "border-destructive bg-destructive/5 focus-visible:ring-destructive"
             )}
-            data-letter=""
-            onClick={handleAllLetters}
-            type="button"
-          >
-            All
-          </button>
-          {letters.map((l) => {
-            const selected = letterFilter === l;
-            const isCenter = l === centerLetter;
-            return (
-              <button
-                aria-pressed={selected}
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
-                  selected
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/70"
-                )}
-                data-letter={l}
-                key={l}
-                onClick={handleLetterFilter}
-                title={isCenter ? "Center letter" : undefined}
-                type="button"
-              >
-                <span className="inline-flex items-center gap-1">
-                  {isCenter && (
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "inline-block size-1 rounded-full",
-                        selected ? "bg-primary-foreground" : "bg-primary"
-                      )}
-                    />
-                  )}
-                  {l}
-                </span>
-              </button>
-            );
-          })}
+            onChange={handleGlobalChange}
+            onKeyDown={handleGlobalKeyDown}
+            placeholder="Enter any word…"
+            spellCheck={false}
+            value={globalInput}
+          />
+          {globalError ? (
+            <p className="mt-1 text-destructive text-xs">{globalError}</p>
+          ) : null}
         </div>
-      )}
+
+        {/* Letter filter pills */}
+        {letters.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <button
+              aria-pressed={letterFilter === null}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 font-medium text-xs transition-colors",
+                letterFilter === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              )}
+              data-letter=""
+              onClick={handleAllLetters}
+              type="button"
+            >
+              All
+            </button>
+            {letters.map((l) => {
+              const selected = letterFilter === l;
+              const isCenter = l === centerLetter;
+              return (
+                <button
+                  aria-pressed={selected}
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+                    selected
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                  )}
+                  data-letter={l}
+                  key={l}
+                  onClick={handleLetterFilter}
+                  title={isCenter ? "Center letter" : undefined}
+                  type="button"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {isCenter && (
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "inline-block size-1 rounded-full",
+                          selected ? "bg-primary-foreground" : "bg-primary"
+                        )}
+                      />
+                    )}
+                    {l}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Groups grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
