@@ -32,6 +32,9 @@ Rows are **not** the puzzle's seven letters (see Letter set): a puzzle letter th
 
 The set of answer slots the solver fills in, grouped by **prefix**. One slot per answer word.
 
+- **Found word**: a slot with an entered word. A slot with no entry is **remaining**. A prefix group is **complete** when every slot in it holds a found word.
+- **View**: which slots the hint list shows. **All** shows every slot, **Remaining** hides found words and complete groups, and **Found** hides remaining slots and any group with no found words.
+
 ## Prefix grain
 
 The number of leading letters a hint is grouped by. **This app groups hints by 3-letter prefix** (e.g. `DRO`, `DRY`). This is a deliberate, load-bearing choice — the hint UI assumes it.
