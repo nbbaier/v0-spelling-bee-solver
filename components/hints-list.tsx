@@ -1,5 +1,6 @@
 "use client";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
+import ArrowDown01Icon from "@hugeicons/core-free-icons/ArrowDown01Icon";
 import Cancel01Icon from "@hugeicons/core-free-icons/Cancel01Icon";
 import Delete02Icon from "@hugeicons/core-free-icons/Delete02Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -334,6 +335,16 @@ export function HintsList({
     }
   }, []);
 
+  const handleViewSelect = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const { value } = event.target;
+      if (isHintView(value)) {
+        setView(value);
+      }
+    },
+    []
+  );
+
   const handleAllLetters = useCallback(() => {
     setLetterFilter(null);
   }, []);
@@ -355,7 +366,7 @@ export function HintsList({
   );
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
+    <div className="@container rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
       {/* Header row */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
@@ -372,9 +383,30 @@ export function HintsList({
             <HugeiconsIcon icon={Delete02Icon} size={13} />
             {letterFilter ? `Clear ${letterFilter}` : "Clear all"}
           </Button>
+          {/* Narrow cards can't fit the segmented control, so they get a
+              select instead; only one is ever displayed. */}
+          <div className="relative @md:hidden">
+            <select
+              aria-label="View"
+              className="h-7 appearance-none rounded-lg border border-border bg-transparent pr-7 pl-2.5 font-medium text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              onChange={handleViewSelect}
+              value={view}
+            >
+              {HINT_VIEWS.map((v) => (
+                <option key={v} value={v}>
+                  {VIEW_LABELS[v]}
+                </option>
+              ))}
+            </select>
+            <HugeiconsIcon
+              className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
+              icon={ArrowDown01Icon}
+              size={13}
+            />
+          </div>
           <ToggleGroup
             aria-label="View"
-            className="flex items-center gap-0.5 rounded-lg border border-border p-0.5"
+            className="@md:flex hidden items-center gap-0.5 rounded-lg border border-border p-0.5"
             onValueChange={handleViewChange}
             value={[view]}
           >
