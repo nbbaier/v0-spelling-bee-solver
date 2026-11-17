@@ -486,30 +486,33 @@ export function HintsList({
                 <button
                   aria-pressed={selected}
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
-                    selected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/70"
-                  )}
-                  data-letter={l}
-                  key={l}
-                  onClick={handleLetterFilter}
-                  title={isCenter ? "Center letter" : undefined}
-                  type="button"
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {isCenter && (
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "inline-block size-1 rounded-full",
-                          selected ? "bg-primary-foreground" : "bg-primary"
-                        )}
-                      />
-                    )}
-                    {l}
-                  </span>
-                </button>
+  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+  selected
+  ? "bg-primary text-primary-foreground"
+  : "bg-muted text-muted-foreground hover:bg-muted/70"
+  )}
+  data-letter={l}
+  key={l}
+  onClick={handleLetterFilter}
+  title={isCenter ? "Center letter" : undefined}
+  type="button"
+  >
+  {isCenter && (
+  <>
+  {/* Flex-centered so the dot sits on the letter's midline without
+  changing the chip's height or baseline. */}
+  <span
+  aria-hidden="true"
+  className={cn(
+  "size-1 shrink-0 rounded-full",
+  selected ? "bg-primary-foreground" : "bg-primary"
+  )}
+  />
+  <span className="sr-only">(center letter) </span>
+  </>
+  )}
+  {l}
+  </button>
               );
             })}
           </div>
