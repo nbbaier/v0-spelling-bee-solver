@@ -486,7 +486,7 @@ export function HintsList({
                 <button
                   aria-pressed={selected}
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+                    "relative rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
                     selected
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/70"
@@ -497,18 +497,21 @@ export function HintsList({
                   title={isCenter ? "Center letter" : undefined}
                   type="button"
                 >
-                  <span className="inline-flex items-center gap-1">
-                    {isCenter && (
+                  {l}
+                  {isCenter && (
+                    <>
+                      {/* Absolutely positioned so the chip keeps the same size and
+                          baseline as the other letters. */}
                       <span
                         aria-hidden="true"
                         className={cn(
-                          "inline-block size-1 rounded-full",
+                          "absolute top-1 right-1 size-1 rounded-full",
                           selected ? "bg-primary-foreground" : "bg-primary"
                         )}
                       />
-                    )}
-                    {l}
-                  </span>
+                      <span className="sr-only"> (center letter)</span>
+                    </>
+                  )}
                 </button>
               );
             })}
