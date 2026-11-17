@@ -486,33 +486,34 @@ export function HintsList({
                 <button
                   aria-pressed={selected}
                   className={cn(
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
-  selected
-  ? "bg-primary text-primary-foreground"
-  : "bg-muted text-muted-foreground hover:bg-muted/70"
-  )}
-  data-letter={l}
-  key={l}
-  onClick={handleLetterFilter}
-  title={isCenter ? "Center letter" : undefined}
-  type="button"
-  >
-  {isCenter && (
-  <>
-  {/* Flex-centered so the dot sits on the letter's midline without
-  changing the chip's height or baseline. */}
-  <span
-  aria-hidden="true"
-  className={cn(
-  "size-1 shrink-0 rounded-full",
-  selected ? "bg-primary-foreground" : "bg-primary"
-  )}
-  />
-  <span className="sr-only">(center letter) </span>
-  </>
-  )}
-  {l}
-  </button>
+                    "relative rounded-full px-2.5 py-0.5 font-medium font-mono text-xs transition-colors",
+                    isCenter && "pl-4.5",
+                    selected
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                  )}
+                  data-letter={l}
+                  key={l}
+                  onClick={handleLetterFilter}
+                  title={isCenter ? "Center letter" : undefined}
+                  type="button"
+                >
+                  {l}
+                  {isCenter && (
+                    <>
+                      {/* Keep every letter in normal text flow: an inline flex
+                          marker can shift the center letter's baseline on mobile. */}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "absolute top-1/2 left-2.5 size-1 -translate-y-1/2 rounded-full",
+                          selected ? "bg-primary-foreground" : "bg-primary"
+                        )}
+                      />
+                      <span className="sr-only"> (center letter)</span>
+                    </>
+                  )}
+                </button>
               );
             })}
           </div>
